@@ -1,6 +1,6 @@
 [versions]
 agp = "8.5.1"
-kotlin = "1.9.24"
+kotlin = "2.0.21"
 greendao = "3.3.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -37,4 +37,5 @@ firebase-database = { group = "com.google.firebase", name = "firebase-database",
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
