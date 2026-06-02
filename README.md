@@ -1,6 +1,6 @@
 # COMP90018 — Mobile Computing Systems Programming
 
-Tutorial source code for **Mobile Computing Systems Programming** (2024) at the University of Melbourne.
+Tutorial source code for **Mobile Computing Systems Programming** at the University of Melbourne.
 Use this repo as a hands-on companion to your weekly tutorials — clone it once, pull each week, and follow along.
 
 ---
