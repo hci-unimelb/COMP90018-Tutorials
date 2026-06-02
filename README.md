@@ -72,7 +72,7 @@ Open the week's module folder in Android Studio (`File → Open` → select the 
 
 **Emulator won't start** — ensure hardware acceleration is enabled in your BIOS / Hyper-V settings.
 
-**`google-services.json` missing** (Firebase module) — follow the setup instructions in [`7-2-connectivity-firebase/`](./7-2-connectivity-firebase/) and add your own Firebase config file.
+**`google-services.json` missing** (Firebase module) — follow Google's [Firebase Android setup guide](https://firebase.google.com/docs/android/setup). Register the Android app with package name `com.example.connectivity_firebase`, then place the downloaded `google-services.json` in [`7-2-connectivity-firebase/`](./7-2-connectivity-firebase/).
 
 ---
 
