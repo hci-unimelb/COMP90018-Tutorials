@@ -35,3 +35,8 @@ include(":6-2-storage-database")
 include(":6-4-storage-contentprovider")
 include(":6-5-storage-internalstorage")
 include(":7-2-connectivity-firebase")
+include(":7-3-connectivity-supabase")
+
+include(":7-4-connectivity-bluetooth")
+
+include(":7-5-connectivity-websocket")

@@ -26,37 +26,70 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 
+/**
+ * UNDERSTANDING ANDROID SERVICES
+ *
+ * What is a Service?
+ * A Service is an application component that performs long-running tasks in the background without
+ * providing a user interface (UI).
+ *
+ * There are two main patterns to use a Service:
+ *  1. **Started Service (via startService)**:
+ *     - "Fire and Forget". The Service runs indefinitely in the background, even if the calling
+ *       Activity is completely destroyed.
+ *     - It must be explicitly stopped via `stopService()` or `stopSelf()`.
+ *
+ *  2. **Bound Service (via bindService)**:
+ *     - "Client-Server" relationship. The Service acts as a server, and the Activity acts as a client.
+ *     - The Activity can directly call methods on the Service and get responses (using a `Binder`).
+ *     - The Service stays alive only as long as there is an Activity bound to it. When all clients unbind,
+ *       the Service is automatically destroyed by the system.
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    /// Notification Channel ///
     private lateinit var notificationManager: NotificationManager
     private lateinit var rpl: ActivityResultLauncher<Array<String>>
     private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.POST_NOTIFICATIONS)
 
     private var downloadBinder: MyService.DownloadBinder? = null
+    
+    // Tracks whether our Activity is currently bound to the Service
     private var bound = false
 
-    // To ServiceConnection for monitoring the change of communication between Service and Activity
+    /**
+     * ServiceConnection:
+     * An interface that acts as the communication link.
+     * When we request a service binding, Android binds them in the background and calls this
+     * interface's methods once the connection is established or lost.
+     */
     private val connection: ServiceConnection = object : ServiceConnection {
 
-        // called when disconnected to Service
+        // Triggered if the service connection is lost (e.g. service crashes or is killed by the OS)
         override fun onServiceDisconnected(name: ComponentName) {
             bound = false
         }
 
-        // called when connecting to Service
+        // Triggered when we successfully connect to the Service
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            // 1. Cast the generic IBinder parameter to our custom DownloadBinder subclass
             downloadBinder = service as MyService.DownloadBinder
+            
+            // 2. We can now directly invoke public methods on the Service!
             downloadBinder?.startDownload()
             downloadBinder?.getProgress()
+            
+            // 3. Set our connection state tracker to true
             bound = true
         }
     }
 
     /**
-     * Create a notification channel to submit notifications from the application
+     * Notification Channels (Android O+ / API 26+ requirement):
+     * Starting in Android Oreo, all notifications must be assigned to a specific "Channel".
+     * This allows users to customize notification settings (e.g. block "Promotional" notifications
+     * while allowing "Critical" service notifications).
      */
     private fun createNotificationChannel() {
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -74,13 +107,10 @@ class MainActivity : AppCompatActivity() {
         channel.setShowBadge(true)
         channel.vibrationPattern = longArrayOf(100, 100, 100)
 
+        // Register the channel with the system
         notificationManager.createNotificationChannel(channel)
     }
 
-    /**
-     * Check to confirm that we have the necessary permissions to show notifications (in > Tiramisu)
-     * @return if all permissions are granted
-     */
     private fun allPermissionsGranted(): Boolean {
         for (permission in REQUIRED_PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -96,8 +126,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        /// region NotificationManager
-        // for notifications permission now required in api 33
+        // Android 13+ (API 33+) requires explicit permission from the user to display notifications!
         rpl = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { isGranted ->
             var granted = true
             for ((key, value) in isGranted) {
@@ -113,77 +142,87 @@ class MainActivity : AppCompatActivity() {
                 rpl.launch(REQUIRED_PERMISSIONS)
             }
         }
-        /// endregion
 
-        /// region onClickListeners
+        // 1. START SERVICE BUTTON (Started Service model)
         binding.startService.setOnClickListener {
             val startIntent = Intent(this@MainActivity, MyService::class.java)
-            startService(startIntent) // Start Service
+            startService(startIntent) // Tells the system to boot up the Service
             Toast.makeText(binding.root.context, "Service starting", Toast.LENGTH_SHORT).show()
         }
 
+        // 2. STOP SERVICE BUTTON (Stops the Started Service)
         binding.stopService.setOnClickListener {
             val stopIntent = Intent(this@MainActivity, MyService::class.java)
-            stopService(stopIntent) // Stop Service
+            stopService(stopIntent) // Tells the system to terminate the Service
             makeNotification("Stopped Service", 2)
             Toast.makeText(binding.root.context, "Service stopping", Toast.LENGTH_SHORT).show()
         }
 
+        // 3. BIND SERVICE BUTTON (Bound Service model)
         binding.bindService.setOnClickListener {
             val bindIntent = Intent(this@MainActivity, MyService::class.java)
-            bindService(bindIntent, connection, BIND_AUTO_CREATE) // Bind Service
+            // 'BIND_AUTO_CREATE' tells Android: "If the service is not currently running, create it automatically."
+            bindService(bindIntent, connection, BIND_AUTO_CREATE)
             Toast.makeText(binding.root.context, "Binding Service", Toast.LENGTH_SHORT).show()
         }
 
+        // 4. UNBIND SERVICE BUTTON
         binding.unbindService.setOnClickListener {
+            // Safety check: only unbind if a binding is currently active!
             if (bound) {
-                unbindService(connection) // Unbind Service
+                unbindService(connection) // Safely unbind from the service
+                bound = false
                 Toast.makeText(binding.root.context, "Unbinding Service", Toast.LENGTH_SHORT).show()
             }
         }
-        /// endregion
 
-        // Register for EventBus Library
         EventBus.getDefault().register(this)
     }
 
     /**
-     * A reusable method to construct necessary notifications
+     * Reusable method to post a system notification from the main screen
      */
     fun makeNotification(message: String, msgCount: Int) {
         val notification = Notification.Builder(applicationContext, id)
-            .setSmallIcon(R.mipmap.ic_launcher)     // set the small icon <REQUIRED>
-            .setContentTitle("Service")             // title of the notification <REQUIRED>
-            .setContentText(message)                // message of the notification <REQUIRED>
+            .setSmallIcon(R.mipmap.ic_launcher)     
+            .setContentTitle("Service")             
+            .setContentText(message)                
             .setLargeIcon(BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher))
-            .setWhen(System.currentTimeMillis())    // when did the notification occur
-            .setChannelId(id)                       // the notification channel to use
-            .setAutoCancel(true)                    // allow the message to be cancelled
+            .setWhen(System.currentTimeMillis())    
+            .setChannelId(id)                       
+            .setAutoCancel(true)                    
             .build()
 
-        //Show the notification
         notificationManager.notify(msgCount, notification)
     }
 
+    /**
+     * [onStop] is called when our Activity is no longer visible to the user.
+     *
+     * To prevent resource and memory leaks, we must unregister EventBus and unbind from our service.
+     * We perform a safety check: `if (bound)`. We only call `unbindService()` if we have successfully
+     * bound to the service, preventing unregister errors.
+     */
     override fun onStop() {
-        // Unregister to avoid Android OOM (out-of-memory)
         EventBus.getDefault().unregister(this)
         super.onStop()
-        unbindService(connection)
-        bound = false
+        if (bound) {
+            unbindService(connection)
+            bound = false
+        }
     }
 
-    //  Method to process when receiving MessageEvent
+    // Listens for communication messages sent from MyService via EventBus
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onMessageEventActivity(event: MessageEvent) {
         if (event.type == MessageEvent.SERVICE) {
             Log.d("MyService", "Service Message Content: " + event.message)
+            // Reply back to the Service using EventBus
             EventBus.getDefault().post(MessageEvent(MessageEvent.ACTIVITY, "Hello from Activity!"))
         }
     }
 
     companion object {
-        /// Notification Channel ///
         const val id = "channel_01"
     }
 }

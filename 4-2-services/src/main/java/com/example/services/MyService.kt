@@ -12,41 +12,73 @@ import android.util.Log
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 
+/**
+ * MYSERVICE CLASS:
+ * This class inherits from Android's base `Service` class.
+ * It runs in the background of our application.
+ */
 class MyService : Service() {
 
     private lateinit var notificationManager: NotificationManager
 
-    // Example for the Binder
+    // Create an instance of our binder (used when activities bind to this service)
     private val mBinder = DownloadBinder()
 
+    /**
+     * THE BINDER CLASS (DownloadBinder):
+     * A "Binder" is the interface that allows communication between our Activity and the Service.
+     * Think of it as a remote control. When the Activity binds to the Service, the system passes this
+     * binder object to the Activity, which can then press "buttons" (call methods like startDownload)
+     * on the service!
+     */
     inner class DownloadBinder : Binder() {
         fun startDownload() {
-            Log.d("MyService", "startDownload executed")
+            Log.d("MyService", "startDownload executed on the background service")
         }
 
         fun getProgress(): Int {
-            Log.d("MyService", "getProgress executed")
+            Log.d("MyService", "getProgress executed on the background service")
             return 0
         }
     }
 
-    // Called when Activity perform bindService() method
+    /**
+     * ONBIND METHOD:
+     * This is the mandatory callback for bound services.
+     * When an Activity calls `bindService()`, the system invokes this method and returns our
+     * custom `mBinder` object.
+     *
+     * If you are writing a started-only service, you would return null here.
+     */
     override fun onBind(intent: Intent): IBinder = mBinder
 
+    /**
+     * ONCREATE METHOD:
+     * Called when the Service is being created for the first time.
+     * This is only executed ONCE, before the service starts running.
+     *
+     * It is used for one-time initialization, such as setting up database connections or registering EventBus.
+     */
     override fun onCreate() {
         super.onCreate()
-
-        // Example for implement foreground service
         Log.d("MyService", "onCreate executed")
 
-        // Example for Eventbus
+        // Register EventBus so this service can listen to message events
         EventBus.getDefault().register(this)
+        
+        // Broadcast a welcome message to any active subscribers (like our MainActivity)
         EventBus.getDefault().post(MessageEvent(MessageEvent.SERVICE, "Hello from Service using EventBus"))
 
-        ///region NotificationManager
-        // Lets notify the user from within the service
+        /**
+         * NOTIFICATIONS FROM INSIDE A SERVICE:
+         * To inform the user that a background service is running, we show a notification.
+         * For "Foreground Services" (services that the user is actively aware of, like a download or map navigation),
+         * showing a persistent notification is a strict Android requirement!
+         * If a service runs in the foreground without a notification, Android will kill it.
+         */
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        // Build a notification and hook it to the channel 'MainActivity.id'
         val notification = Notification.Builder(applicationContext, MainActivity.id)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setLargeIcon(BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher))
@@ -58,24 +90,37 @@ class MyService : Service() {
             .setNumber(5)
             .build()
 
+        // Display the notification immediately to the user
         notificationManager.notify(1, notification)
-        ///endregion
     }
 
-    override fun onDestroy() {
-        //Unregister EventBus after stop service to avoid OOM (out-of-memory)
-        EventBus.getDefault().unregister(this)
-        super.onDestroy()
-        Log.d("MyService", "onDestroy executed")
-    }
-
-    //called when startService() method is executed
+    /**
+     * ONSTARTCOMMAND METHOD:
+     * Triggered every time an Activity calls `startService(intent)`.
+     *
+     * Unlike onCreate(), this can be called multiple times if started multiple times.
+     * The return integer tells the Android OS how to handle this service if the OS runs out
+     * of memory and has to kill the service in the background:
+     *  - `START_STICKY`: Tells the system to recreate the service when memory is freed up (highly persistent).
+     *  - `START_NOT_STICKY`: Tells the system NOT to recreate the service unless there are pending launch intents.
+     */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("MyService", "onStartCommand executed")
         return super.onStartCommand(intent, flags, startId)
     }
 
-    //method to process when receiving MessageEvent
+    /**
+     * ONDESTROY METHOD:
+     * Triggered when the service is stopping and being removed from memory.
+     * Always unregister listeners, EventBus, and stop active threads here to prevent memory leaks!
+     */
+    override fun onDestroy() {
+        EventBus.getDefault().unregister(this) // Unregister EventBus to avoid Out-Of-Memory leaks
+        super.onDestroy()
+        Log.d("MyService", "onDestroy executed")
+    }
+
+    // Process event messages sent from the MainActivity via EventBus
     @Subscribe
     fun onMessageEventService(event: MessageEvent) {
         if (event.type == MessageEvent.ACTIVITY)

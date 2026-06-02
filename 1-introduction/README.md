@@ -6,7 +6,7 @@ There are no source code related tasks, however please get your environment all 
 
 > - Install Android Studio
 > - Install Git
-> - Try creating a new android project with the java language
+> - Try creating a new android project with the **Kotlin** language
 > - Try opening an existing android module
 > - Try running an existing android module using the emulator
 
