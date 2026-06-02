@@ -51,7 +51,10 @@ Open the week's module folder in Android Studio (`File → Open` → select the 
 | 6b   | [Storage — Database](./6-2-storage-database/)                   | Room, SQLite, DAOs                                    |
 | 6c   | [Storage — ContentProvider](./6-4-storage-contentprovider/)     | Sharing data between apps                             |
 | 6d   | [Storage — Internal Storage](./6-5-storage-internalstorage/)    | Reading & writing files                               |
-| 7    | [Connectivity — Firebase](./7-2-connectivity-firebase/)         | Realtime Database, Authentication                     |
+| 7a   | [Connectivity — Firebase](./7-2-connectivity-firebase/)         | Realtime Database, `ValueEventListener` ⚠️             |
+| 7b   | [Connectivity — Supabase](./7-3-connectivity-supabase/)         | Postgres via PostgREST, Kotlin serialization ⚠️        |
+| 7c   | [Connectivity — Bluetooth](./7-4-connectivity-bluetooth/)       | BLE scanning, GATT, runtime permissions               |
+| 7d   | [Connectivity — WebSocket](./7-5-connectivity-websocket/)       | OkHttp WebSocket, full-duplex messaging               |
 
 ---
 
@@ -64,6 +67,11 @@ Open the week's module folder in Android Studio (`File → Open` → select the 
 
 > Each module is a standalone Android project — open the module folder itself, not the root of this repo.
 
+> ⚠️ **Modules that require credential setup before building:**
+> - **7a Firebase** — needs `google-services.json` from Firebase Console. See [`7-2-connectivity-firebase/README.md`](./7-2-connectivity-firebase/README.md).
+> - **7b Supabase** — needs `SUPABASE_URL` and `SUPABASE_KEY` in `local.properties`. See [`7-3-connectivity-supabase/README.md`](./7-3-connectivity-supabase/README.md).
+> - **7c Bluetooth** — no credentials needed, but requires a **physical Android device** (emulator has no Bluetooth radio).
+
 ---
 
 ## Troubleshooting
@@ -72,7 +80,9 @@ Open the week's module folder in Android Studio (`File → Open` → select the 
 
 **Emulator won't start** — ensure hardware acceleration is enabled in your BIOS / Hyper-V settings.
 
-**`google-services.json` missing** (Firebase module) — follow Google's [Firebase Android setup guide](https://firebase.google.com/docs/android/setup). Register the Android app with package name `com.example.connectivity_firebase`, then place the downloaded `google-services.json` in [`7-2-connectivity-firebase/`](./7-2-connectivity-firebase/).
+**`google-services.json` missing** (Firebase module) — see [`7-2-connectivity-firebase/README.md`](./7-2-connectivity-firebase/README.md) for the full setup walkthrough. In short: create a Firebase project, register the app with package `com.example.connectivity_firebase`, download the file, and drop it in the `7-2-connectivity-firebase/` folder.
+
+**`SUPABASE_URL`/`SUPABASE_KEY` not set** (Supabase module) — see [`7-3-connectivity-supabase/README.md`](./7-3-connectivity-supabase/README.md). Add both values to `local.properties` in the root of the repo.
 
 ---
 
