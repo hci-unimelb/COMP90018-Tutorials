@@ -95,6 +95,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Opens the Layout Gallery: a segmented control comparing LinearLayout, RelativeLayout,
+        // and ConstraintLayout side by side, each with a mock screen suited to that layout's strengths.
+        binding.layoutGalleryButton.setOnClickListener {
+            startActivity(Intent(this, LayoutGalleryActivity::class.java))
+        }
+
         // Adjusts the screen margins so system bars (like status and navigation bars) do not overlap our UI elements
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

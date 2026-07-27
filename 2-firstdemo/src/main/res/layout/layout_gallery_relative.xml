@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    RelativeLayout demo — a notification card.
+    The timestamp is pinned to the parent's top-right corner and the unread badge
+    overlaps the avatar's corner — positioning LinearLayout can't express in one pass,
+    because both views are placed relative to the PARENT, not stacked after each other.
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <View
+        android:id="@+id/avatar"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:background="@drawable/circle_avatar" />
+
+    <View
+        android:id="@+id/badge"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_alignTop="@id/avatar"
+        android:layout_alignEnd="@id/avatar"
+        android:layout_marginTop="-4dp"
+        android:layout_marginEnd="-4dp"
+        android:background="@drawable/circle_badge" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/avatar"
+        android:layout_alignTop="@id/avatar"
+        android:layout_marginStart="12dp"
+        android:text="Ada Lovelace"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:text="2m ago"
+        android:textSize="12sp"
+        android:textColor="#666666" />
+
+    <TextView
+        android:id="@+id/message_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/avatar"
+        android:layout_marginTop="12dp"
+        android:text="Commented on your pull request: &quot;This is exactly the kind of overlap RelativeLayout is for.&quot;"
+        android:textSize="14sp" />
+
+</RelativeLayout>
