@@ -24,7 +24,7 @@
         </activity>
 
         <activity
-            android:name=".Main2Activity"
+            android:name=".SecondActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="SecondActivity"/>

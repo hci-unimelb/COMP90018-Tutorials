@@ -19,46 +19,72 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:layout_marginBottom="16dp"
-        android:text="Same idea, three ways to arrange it. Tap a layout to see it in action."
+        android:text="Tap a tab to compare layouts. Sizes below are dp, not px."
         android:textSize="13sp"
         android:textColor="#666666" />
 
     <!-- Segmented control: MaterialButtonToggleGroup is the native Material Components
-         equivalent of iOS's segmented control, already available via the material dependency. -->
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/layout_toggle"
+         equivalent of iOS's segmented control, already available via the material dependency.
+         Wrapped in a HorizontalScrollView since six segments don't all fit on a phone width. -->
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:singleSelection="true"
-        app:selectionRequired="true">
+        android:scrollbars="none">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_linear"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="0dp"
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/layout_toggle"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Linear" />
+            app:singleSelection="true"
+            app:selectionRequired="true">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_relative"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Relative" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_padding_margin"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pad / Margin" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_constraint"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Constraint" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_linear"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Linear" />
 
-    </com.google.android.material.button.MaterialButtonToggleGroup>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_relative"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Relative" />
 
-    <!-- All three demos are inflated up front; only one is made VISIBLE at a time -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_constraint"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Constraint" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_grid"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Grid" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_table"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Table" />
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    </HorizontalScrollView>
+
+    <!-- All six demos are inflated up front; only one is made VISIBLE at a time -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -67,8 +93,13 @@
         android:background="#11000000">
 
         <include
+            android:id="@+id/demo_padding_margin"
+            layout="@layout/layout_gallery_padding_margin" />
+
+        <include
             android:id="@+id/demo_linear"
-            layout="@layout/layout_gallery_linear" />
+            layout="@layout/layout_gallery_linear"
+            android:visibility="gone" />
 
         <include
             android:id="@+id/demo_relative"
@@ -78,6 +109,16 @@
         <include
             android:id="@+id/demo_constraint"
             layout="@layout/layout_gallery_constraint"
+            android:visibility="gone" />
+
+        <include
+            android:id="@+id/demo_grid"
+            layout="@layout/layout_gallery_grid"
+            android:visibility="gone" />
+
+        <include
+            android:id="@+id/demo_table"
+            layout="@layout/layout_gallery_table"
             android:visibility="gone" />
 
     </FrameLayout>

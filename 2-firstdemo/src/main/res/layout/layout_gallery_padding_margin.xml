@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Padding vs Margin demo — not a layout type, but the attribute pair every layout type
+    above uses, so it earns its own tab. Same dashed "parent frame" behind both boxes;
+    only the child's spacing attribute differs.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PADDING — space INSIDE the view. Its background still fills the dashed frame; only the text is pushed inward."
+        android:textSize="13sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="90dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/frame_outline">
+
+        <TextView
+            android:id="@+id/padding_box"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#3DDC84"
+            android:padding="24dp"
+            android:text="24dp padding"
+            android:gravity="center" />
+
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="MARGIN — space OUTSIDE the view. You can see the dashed frame's grey through the gap around it."
+        android:textSize="13sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="90dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/frame_outline">
+
+        <TextView
+            android:id="@+id/margin_box"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="24dp"
+            android:background="#3DDC84"
+            android:text="24dp margin"
+            android:gravity="center" />
+
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/log_dimensions_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:text="Log real pixel sizes" />
+
+</LinearLayout>

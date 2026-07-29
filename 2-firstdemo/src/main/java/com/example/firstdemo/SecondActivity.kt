@@ -5,18 +5,18 @@ import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import com.example.firstdemo.databinding.ActivityMain2Binding
+import com.example.firstdemo.databinding.ActivitySecondBinding
 
 /**
- * [Main2Activity] - The Second Screen of the App
+ * [SecondActivity] - The Second Screen of the App
  *
  * This screen is launched by MainActivity. It extracts parameters from the launch request,
  * displays it, and handles returning a response package back when closed.
  */
-class Main2Activity : AppCompatActivity() {
+class SecondActivity : AppCompatActivity() {
 
-    // ViewBinding reference to access widgets in activity_main2.xml
-    private lateinit var binding: ActivityMain2Binding
+    // ViewBinding reference to access widgets in activity_second.xml
+    private lateinit var binding: ActivitySecondBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,7 +25,7 @@ class Main2Activity : AppCompatActivity() {
         enableEdgeToEdge()
         
         // Inflate the XML layout into Kotlin objects
-        binding = ActivityMain2Binding.inflate(layoutInflater)
+        binding = ActivitySecondBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         // Read the string data passed by the calling screen.

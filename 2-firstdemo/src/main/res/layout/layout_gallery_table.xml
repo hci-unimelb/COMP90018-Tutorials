@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    TableLayout demo — a pricing comparison table.
+    Cells across TableRows line up into columns automatically, and stretchColumns makes
+    the "Price" column absorb the leftover width — the one thing TableLayout does that
+    a plain LinearLayout of rows can't do on its own.
+-->
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:stretchColumns="1">
+
+    <TableRow>
+        <TextView android:text="Plan" android:textStyle="bold" android:padding="8dp" />
+        <TextView android:text="Price" android:textStyle="bold" android:padding="8dp" />
+        <TextView android:text="Storage" android:textStyle="bold" android:padding="8dp" />
+    </TableRow>
+
+    <View
+        android:layout_height="1dp"
+        android:background="#22000000" />
+
+    <TableRow>
+        <TextView android:text="Free" android:padding="8dp" />
+        <TextView android:text="$0" android:padding="8dp" />
+        <TextView android:text="5 GB" android:padding="8dp" />
+    </TableRow>
+
+    <TableRow>
+        <TextView android:text="Pro" android:padding="8dp" />
+        <TextView android:text="$9 / mo" android:padding="8dp" />
+        <TextView android:text="200 GB" android:padding="8dp" />
+    </TableRow>
+
+    <TableRow>
+        <TextView android:text="Team" android:padding="8dp" />
+        <TextView android:text="$29 / mo" android:padding="8dp" />
+        <TextView android:text="2 TB" android:padding="8dp" />
+    </TableRow>
+
+</TableLayout>

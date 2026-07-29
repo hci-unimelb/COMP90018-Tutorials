@@ -32,7 +32,9 @@ class MainActivity : AppCompatActivity() {
         Explicit  // Explicit: Directly launching a specific screen by class name
     }
 
+
     // Toggle these properties to change the behavior of the tutorial demonstration!
+    //    FIXME:
     private val step = Step.Three
     private val intent = IntentStyle.Implicit
 
@@ -117,12 +119,12 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "outputLog: Click Button Successful!")
 
         // Style A: EXPLICIT INTENTS
-        // We explicitly specify the exact destination screen class (Main2Activity) we want to load.
+        // We explicitly specify the exact destination screen class (SecondActivity) we want to load.
         if (intent == IntentStyle.Explicit) {
             Log.d(TAG, "outputLog: Step one: Explicit Intent")
             
-            // Define an intent to transition from 'this' screen to 'Main2Activity'
-            val explicit = Intent(this, Main2Activity::class.java)
+            // Define an intent to transition from 'this' screen to 'SecondActivity'
+            val explicit = Intent(this, SecondActivity::class.java)
             
             // putExtra allows us to attach extra parameters (like a payload package) to pass to the next activity
             explicit.putExtra(MESSAGE, "Hello from the first activity")
@@ -137,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         if (intent == IntentStyle.Implicit) {
             val implicit = Intent()
             
-            // Set the custom action name. Main2Activity is registered to respond to this action!
+            // Set the custom action name. SecondActivity is registered to respond to this action!
             implicit.action = "SecondActivity"
             
             // Attach the data payload string
@@ -159,7 +161,7 @@ class MainActivity : AppCompatActivity() {
         // If the second screen closed successfully (RESULT_OK)
         if (result.resultCode == RESULT_OK) {
             // Retrieve the data package sent back by the closing activity
-            val returnedText = result.data?.getStringExtra(Main2Activity.RECEIVED_MESSAGE)
+            val returnedText = result.data?.getStringExtra(SecondActivity.RECEIVED_MESSAGE)
             
             // Update our TextView to show the text we received back
             binding.receivedMessage.text = returnedText
