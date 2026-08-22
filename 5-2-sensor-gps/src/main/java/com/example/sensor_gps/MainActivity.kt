@@ -1,6 +1,7 @@
 package com.example.sensor_gps
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -20,8 +21,12 @@ import com.google.android.gms.location.LocationServices
 /**
  * MAINACTIVITY: GPS SENSOR DEMO
  *
- * This screen displays the user's current physical latitude and longitude coordinates.
- * It uses Google Play Services' `FusedLocationProviderClient` to access GPS data.
+ * This screen's ONE job is fetching a coordinate: check/request the runtime permission,
+ * then read it via Google Play Services' `FusedLocationProviderClient`. It deliberately
+ * does NOT show a map itself — that's MapActivity's job, launched once a coordinate is
+ * available (see openMap() below). Splitting these into two screens keeps each one doing
+ * one thing, and makes it obvious on screen that fetching a location and displaying it
+ * on a map are two separate steps, not one.
  *
  * What is the FusedLocationProviderClient?
  * Google's advanced location client that combines (fuses) signals from GPS, Wi-Fi networks,
@@ -51,7 +56,24 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var latttv: TextView
     private lateinit var longtv: TextView
+    private lateinit var sourceLabel: TextView
     private lateinit var button: Button
+    private lateinit var mapButton: Button
+
+    // The most recently resolved coordinate (real fix or demo fallback), handed off
+    // to MapActivity when mapButton is tapped. Null until updateLocation() resolves once.
+    private var lastLat: Double? = null
+    private var lastLng: Double? = null
+
+    // DEMO FALLBACK — Bouverie Street, Carlton (this tutorial's teaching venue).
+    // Street-level accuracy only (~city-block precision, not a rooftop-exact geocode
+    // for the specific house number). The emulator has no real GPS fix until one is
+    // injected — via Extended Controls -> Location, or `adb emu geo fix 144.9620 -37.8032`
+    // — so lastLocation legitimately returns null until then. This fallback keeps the
+    // demo from stalling on a blank screen; swap in the exact coordinate (long-press
+    // the address in Google Maps, copy the lat/lng shown) if you want it precise.
+    private val DEMO_FALLBACK_LAT = -37.8032
+    private val DEMO_FALLBACK_LNG = 144.9620
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,7 +83,7 @@ class MainActivity : AppCompatActivity() {
 
         // 1. Initialize the Google Fused Location client
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        
+
         // 2. Configure the LocationRequest:
         // - Set interval to 5000 milliseconds (request a location update every 5 seconds)
         @Suppress("DEPRECATION")
@@ -72,7 +94,7 @@ class MainActivity : AppCompatActivity() {
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
                 Log.d("LocationTest", "Received location update")
-                
+
                 // Get the most recent location and update our user interface
                 locationResult.lastLocation?.let { updateUI(it) }
             }
@@ -80,10 +102,16 @@ class MainActivity : AppCompatActivity() {
 
         latttv = binding.latitudeInput
         longtv = binding.longitudeInput
+        sourceLabel = binding.sourceLabel
         button = binding.button
+        mapButton = binding.mapButton
 
         button.setOnClickListener {
             updateLocation()
+        }
+
+        mapButton.setOnClickListener {
+            openMap()
         }
     }
 
@@ -93,7 +121,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateLocation() {
         // 1. Check if the user has already granted Location permissions
         if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            
+
             // 2. Permission is GRANTED! Request active, repeating location updates
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
 
@@ -101,7 +129,10 @@ class MainActivity : AppCompatActivity() {
             fusedLocationClient.lastLocation
                 .addOnSuccessListener(this) { location ->
                     if (location == null) {
-                        Log.d("LocationTest", "Last location cache is null")
+                        // Expected on a fresh emulator with no injected/cached fix yet —
+                        // fall back to the demo location instead of leaving the screen blank.
+                        Log.d("LocationTest", "Last location cache is null — showing demo fallback location")
+                        showLocation(DEMO_FALLBACK_LAT, DEMO_FALLBACK_LNG, isRealFix = false)
                     } else {
                         Log.d("LocationTest", "Successfully retrieved cached location")
                         updateUI(location)
@@ -110,19 +141,52 @@ class MainActivity : AppCompatActivity() {
         } else {
             // 4. Permission is NOT granted! Show the system dialog prompting the user for permission
             ActivityCompat.requestPermissions(
-                this@MainActivity, 
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 
+                this@MainActivity,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 Request_Code_Location
             )
         }
     }
 
     /**
-     * Updates the screen's TextViews with physical coordinates.
+     * Updates the screen's TextViews with a real GPS fix.
      */
     private fun updateUI(location: Location) {
-        latttv.text = location.latitude.toString()
-        longtv.text = location.longitude.toString()
+        showLocation(location.latitude, location.longitude, isRealFix = true)
+    }
+
+    /**
+     * Single place that updates the lat/long text, the "where did this come from" label,
+     * and remembers the coordinate for openMap() — used by both the real-fix path
+     * (updateUI) and the demo-fallback path (updateLocation's null branch), so the two
+     * paths can never drift out of sync with each other.
+     */
+    private fun showLocation(lat: Double, lng: Double, isRealFix: Boolean) {
+        latttv.text = lat.toString()
+        longtv.text = lng.toString()
+        sourceLabel.text = if (isRealFix) {
+            "Source: real GPS fix"
+        } else {
+            "Source: demo fallback (Bouverie Street — not a real GPS fix)"
+        }
+
+        lastLat = lat
+        lastLng = lng
+        mapButton.isEnabled = true
+    }
+
+    /**
+     * Hands the most recently resolved coordinate off to MapActivity. Only reachable
+     * once mapButton is enabled, which only happens after showLocation() has run once.
+     */
+    private fun openMap() {
+        val lat = lastLat ?: return
+        val lng = lastLng ?: return
+        startActivity(
+            Intent(this, MapActivity::class.java)
+                .putExtra(MapActivity.EXTRA_LAT, lat)
+                .putExtra(MapActivity.EXTRA_LNG, lng)
+        )
     }
 
     /**

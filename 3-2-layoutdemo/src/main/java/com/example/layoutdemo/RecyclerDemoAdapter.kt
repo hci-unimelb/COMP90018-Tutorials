@@ -17,6 +17,10 @@ import com.example.layoutdemo.databinding.RecyclerExampleBinding
  *
  * As the user scrolls, cells that disappear at the top are "recycled" and moved to the bottom to display
  * the next item's data.
+ *
+ * On screen: each card comes from res/layout/recycler_example.xml — the fruit icon centered
+ * above its name, unlike ListView's side-by-side row. Paired with the StaggeredGridLayoutManager
+ * set up in LayoutDemoFragment, these cards arrange into a 2-column staggered grid.
  */
 class RecyclerDemoAdapter(
     // List of fruit data models to display
@@ -60,7 +64,10 @@ class RecyclerDemoAdapter(
         holder.binding.recyclerExampleImage.setImageResource(fruit.fruitImage)
         holder.binding.recyclerExampleText.text = fruit.fruitName
 
-        // Handle user taps on individual list rows
+        // Handle user taps on individual list rows.
+        // Contrast this with ListDemoAdapter (the ListView demo): there, the click listener is
+        // set once on the whole ListView, in LayoutDemoFragment.kt. Here, it's set per row,
+        // inside the adapter itself — RecyclerView's more granular style.
         holder.binding.recyclerExampleLayout.setOnClickListener { view ->
             // Use bindingAdapterPosition to retrieve the current, real-time list index of this cell
             val currentIndex = holder.bindingAdapterPosition

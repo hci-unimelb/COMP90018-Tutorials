@@ -1,0 +1,523 @@
+<!--
+  ENGINE TEMPLATE — Live Demo Guide
+
+  This file has two parts:
+    1. THE ENGINE (CSS + generic JS renderer) — copy this as-is. It renders whatever
+       is in the DATA array below into a timed, checkbox-tracked run sheet. Don't
+       redesign the visual system per week — consistency across weeks is a feature.
+    2. THE EXAMPLE DATA BLOCK — replace this entirely with the actual week's content.
+       It demonstrates every field the renderer understands, so you can see what's
+       available without re-deriving the schema from scratch.
+
+  See ../SKILL.md and ../references/voice-guide.md before filling in a new week.
+-->
+<title>Week N — Live Demo Guide</title>
+<style>
+  :root {
+    --bg: #F6F4EF;
+    --surface: #FFFFFF;
+    --fg: #1B1F23;
+    --fg-muted: #5B6169;
+    --accent: #3E7C6C;
+    --accent-soft: rgba(62,124,108,0.12);
+    --amber: #B5652E;
+    --amber-soft: rgba(181,101,46,0.14);
+    --line: rgba(27,31,35,0.13);
+    --code-bg: #1B1F23;
+    --code-fg: #DCEEE7;
+    --code-key: #E8A96B;
+    --code-str: #8FC1B0;
+    --code-com: #7C8A88;
+    --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 6px 20px rgba(20,20,15,0.05);
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151A; --surface: #1A1E24; --fg: #E7E5DE; --fg-muted: #9AA0A8;
+      --accent: #5FA491; --accent-soft: rgba(95,164,145,0.16); --amber: #E08A4B;
+      --amber-soft: rgba(224,138,75,0.16); --line: rgba(255,255,255,0.11);
+      --code-bg: #0D0F12; --code-fg: #DCEEE7;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151A; --surface: #1A1E24; --fg: #E7E5DE; --fg-muted: #9AA0A8;
+    --accent: #5FA491; --accent-soft: rgba(95,164,145,0.16); --amber: #E08A4B;
+    --amber-soft: rgba(224,138,75,0.16); --line: rgba(255,255,255,0.11);
+    --code-bg: #0D0F12; --code-fg: #DCEEE7;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F4EF; --surface: #FFFFFF; --fg: #1B1F23; --fg-muted: #5B6169;
+    --accent: #3E7C6C; --accent-soft: rgba(62,124,108,0.12); --amber: #B5652E;
+    --amber-soft: rgba(181,101,46,0.14); --line: rgba(27,31,35,0.13);
+    --code-bg: #1B1F23; --code-fg: #DCEEE7;
+    --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 6px 20px rgba(20,20,15,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 64px; }
+
+  header.top { padding: 28px 20px 18px; max-width: 880px; margin: 0 auto; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { font-family: var(--mono); font-size: clamp(22px, 4vw, 30px); font-weight: 700; letter-spacing: -0.01em; margin: 6px 0 4px; text-wrap: balance; }
+  .sub { color: var(--fg-muted); font-size: 14.5px; margin: 0; }
+  .sub code { font-family: var(--mono); font-size: 12.5px; }
+
+  .pacebar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 10px 20px 12px; }
+  .pacebar-inner { max-width: 880px; margin: 0 auto; }
+  .pace-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .timer-controls { display: flex; align-items: center; gap: 8px; }
+  .clock { font-family: var(--mono); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 64px; letter-spacing: 0.01em; }
+  .clock.over { color: var(--amber); }
+  button.ctl { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid var(--line); background: var(--surface); color: var(--fg); padding: 6px 11px; border-radius: 6px; cursor: pointer; transition: background .15s, border-color .15s, opacity .15s; }
+  button.ctl:hover { border-color: var(--accent); }
+  button.ctl:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button.ctl.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+  button.ctl:disabled { cursor: not-allowed; }
+  .target { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--fg-muted); }
+  .target b { color: var(--fg); }
+
+  .timeline { display: flex; gap: 2px; margin-top: 10px; height: 26px; }
+  .seg { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: border-color .2s, background .2s; }
+  .seg .fill { position: absolute; inset: 0; background: var(--accent-soft); width: 0%; transition: width .3s linear; }
+  .seg.active { border-color: var(--accent); }
+  .seg.active .fill { background: var(--accent); opacity: .25; }
+  .seg.done { border-color: var(--accent); background: var(--accent-soft); }
+  .seg-label { position: relative; font-family: var(--mono); font-size: 10px; color: var(--fg-muted); z-index: 1; padding: 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg.active .seg-label, .seg.done .seg-label { color: var(--fg); font-weight: 600; }
+
+  main { margin-top: 28px; display: flex; flex-direction: column; gap: 18px; }
+  section.block { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 20px 22px 22px; scroll-margin-top: 130px; }
+  section.block.talk { border-left: 3px solid var(--line); }
+  section.block.demo { border-left: 3px solid var(--accent); }
+
+  .block-head { display: flex; align-items: flex-start; gap: 12px; justify-content: space-between; }
+  .block-title-group { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .chip-time { font-family: var(--mono); font-size: 11px; font-weight: 700; background: var(--amber-soft); color: var(--amber); padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+  .chip-mode { font-family: var(--mono); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--fg-muted); display: inline-flex; align-items: center; gap: 5px; }
+  .chip-mode .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .demo .chip-mode .dot { background: var(--accent); }
+  .talk .chip-mode .dot { background: none; border: 1.5px solid var(--fg-muted); }
+  h2.block-title { font-family: var(--mono); font-size: 17px; font-weight: 700; margin: 0; }
+  .objective { color: var(--fg-muted); font-size: 13.5px; margin: 3px 0 0; }
+
+  label.done-toggle { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-muted); cursor: pointer; user-select: none; flex-shrink: 0; }
+  label.done-toggle input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  section.block.checked { opacity: 0.62; }
+  section.block.checked .block-title { text-decoration: line-through; text-decoration-color: var(--fg-muted); }
+
+  .files-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .file-pill { font-family: var(--mono); font-size: 11.5px; background: var(--bg); border: 1px solid var(--line); color: var(--fg); padding: 3px 9px; border-radius: 6px; white-space: nowrap; }
+
+  ul.talk-points, ol.steps { margin: 14px 0 0; padding-left: 20px; }
+  ul.talk-points { list-style: none; padding-left: 0; }
+  ul.talk-points > li { position: relative; padding-left: 16px; margin: 10px 0; font-size: 14px; }
+  ul.talk-points > li::before { content: ""; position: absolute; left: 0; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--fg-muted); }
+  ol.steps { counter-reset: step; }
+  ol.steps > li { position: relative; margin: 10px 0; padding-left: 4px; font-size: 14px; }
+  ol.steps > li::marker { font-family: var(--mono); font-weight: 700; color: var(--accent); }
+
+  .plain-en { margin-top: 6px; padding: 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 8px; font-size: 12.5px; line-height: 1.5; color: var(--fg); }
+  .plain-en b { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); display: block; margin-bottom: 2px; }
+
+  .theory-block { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: color-mix(in srgb, var(--amber-soft) 45%, var(--surface)); }
+  .theory-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--amber); font-weight: 700; margin-bottom: 10px; }
+  ol.theory-steps { margin: 0; padding-left: 20px; }
+  ol.theory-steps > li { margin: 11px 0; font-size: 13.5px; }
+  ol.theory-steps > li::marker { font-family: var(--mono); font-weight: 700; color: var(--amber); }
+  .ts-title { font-family: var(--mono); font-weight: 700; font-size: 13px; }
+  .ts-body { margin-top: 4px; line-height: 1.55; }
+  .ts-body b { color: var(--amber); }
+  .theory-summary { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 12.5px; color: var(--fg-muted); line-height: 1.5; }
+  .theory-summary b { color: var(--fg); }
+  dl.glossary { margin: 0; }
+  dl.glossary dt { font-family: var(--mono); font-weight: 700; font-size: 12.5px; color: var(--fg); margin-top: 11px; }
+  dl.glossary dt:first-child { margin-top: 0; }
+  dl.glossary dd { margin: 3px 0 0; font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+  dl.glossary dd b { color: var(--fg); }
+
+  .compare-caption { font-family: var(--mono); font-weight: 700; font-size: 12.5px; color: var(--fg); margin-top: 14px; margin-bottom: 8px; }
+  .compare-wrap { overflow-x: auto; }
+  table.compare-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.compare-table th, table.compare-table td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  table.compare-table thead th { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; background: var(--surface); color: var(--fg-muted); }
+  table.compare-table tbody th[scope="row"] { font-family: var(--mono); font-weight: 700; font-size: 12px; background: var(--surface); color: var(--fg); white-space: nowrap; }
+  table.compare-table tbody td { background: var(--bg); color: var(--fg); line-height: 1.45; }
+  table.compare-table tbody td b { color: var(--amber); }
+
+  .callout { margin-top: 14px; border-left: 3px solid var(--amber); background: var(--amber-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13.5px; }
+  .callout .tag { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); font-weight: 700; display: block; margin-bottom: 3px; }
+
+  .code-panel { margin-top: 14px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .code-panel + .code-panel { margin-top: 10px; }
+  .code-panel.highlight { border-color: var(--amber); }
+  .code-tab { background: var(--code-bg); color: var(--code-com); font-family: var(--mono); font-size: 11px; padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .code-panel.highlight .code-tab { color: var(--amber); }
+  .code-tab .core-badge { font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; background: var(--amber-soft); color: var(--amber); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+  .code-note { background: var(--code-bg); color: var(--code-com); font-family: var(--sans); font-size: 12.5px; font-style: italic; padding: 0 14px 10px; margin: 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  pre.code { margin: 0; background: var(--code-bg); color: var(--code-fg); font-family: var(--mono); font-size: 12.5px; line-height: 1.6; padding: 12px 14px; overflow-x: auto; }
+  pre.code .k { color: var(--code-key); }
+  pre.code .s { color: var(--code-str); }
+  pre.code .c { color: var(--code-com); font-style: italic; }
+
+  .ask { margin-top: 14px; font-size: 13.5px; font-style: italic; color: var(--fg-muted); }
+  .ask b { color: var(--fg); font-style: normal; font-family: var(--mono); font-size: 12.5px; }
+
+  .preview-block { margin-top: 16px; }
+  .preview-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .preview-label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .preview-slot { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); padding: 16px; }
+
+  footer.end { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--fg-muted); font-size: 12.5px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  footer.end code { font-family: var(--mono); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  @media (max-width: 560px) { .pace-row { flex-wrap: wrap; } .target { margin-left: 0; } .seg-label { display: none; } }
+
+  /* ==================================================================
+     ADD ANY NEW PREVIEW-SPECIFIC CSS BELOW THIS LINE (e.g. a new mock
+     phone frame, a new state-diagram widget). Keep it scoped to classes
+     that won't collide with the generic ones above.
+     ================================================================== */
+</style>
+
+<header class="top">
+  <div class="eyebrow">COURSE CODE &middot; TUTORIAL N</div>
+  <h1>Week N Topic &mdash; Live Demo Guide</h1>
+  <p class="sub">DURATION-minute run sheet &middot; repo <code>REPO-NAME</code> &middot; modules <code>N-1-topic</code> &middot; <code>N-2-topic</code></p>
+</header>
+
+<div class="pacebar">
+  <div class="pacebar-inner">
+    <div class="pace-row">
+      <div class="timer-controls">
+        <span class="clock" id="clock">00:00</span>
+        <button class="ctl primary" id="btnStart">Start</button>
+        <button class="ctl" id="btnReset">Reset</button>
+      </div>
+      <div class="target">budget <b>DURATION:00</b></div>
+    </div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <main id="sections"></main>
+  <footer class="end">
+    <span>Checkbox state and timer are local to this browser tab. Previews are simulated &mdash; confirm behaviour on the real emulator before it matters.</span>
+    <span>Next module: <code>N+1-1-topic</code></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  // ====================================================================
+  // PER-WEEK CONTENT — replace this DATA array entirely for a new week.
+  // Every field is optional except id/mode/minutes/cumEnd/title/objective.
+  // `cumEnd` is the RUNNING TOTAL of minutes at the end of this block —
+  // it must equal (previous block's cumEnd) + (this block's minutes), and
+  // the LAST block's cumEnd must equal the full session duration.
+  // ====================================================================
+  var DATA = [
+    {
+      id: "example-block",              // unique, used as the DOM id and anchor (#example-block)
+      mode: "demo",                      // "talk" (no live demo) or "demo" (live demo — gets an accent left-border + solid timeline dot)
+      minutes: 10,                       // this block's share of the total budget
+      cumEnd: 10,                        // running total through the end of this block
+      title: "Example Block Title",
+      objective: "One sentence: what should be true in the audience's head after this block.",
+      files: ["ExampleFile.kt", "example_layout.xml"],   // real repo paths/filenames referenced — shown as pills
+
+      // points: talking points for a TALK block (rendered as a bullet list).
+      // Each item is either a plain string, or {main, plain} where `plain` is
+      // a concrete, everyday analogy for a non-technical student — see
+      // ../references/voice-guide.md for the analogy conventions.
+      points: [
+        "A plain bullet with no jargon needs no `plain` companion — don't force one.",
+        {
+          main: "A bullet describing something technical/jargon-heavy.",
+          plain: "Ground the SAME idea in something physical and visualizable &mdash; a room, a factory line, a theatre, a restaurant menu. Tie it to the actual mechanism, not a generic decoration."
+        }
+      ],
+
+      // steps: numbered live-demo instructions for a DEMO block (rendered as an ordered list).
+      // Same {main, plain} shape as points. Use imperative voice ("Tap X", "Open Y").
+      steps: [
+        "Run MODULE-NAME, open X.",
+        {
+          main: "Tap the button that does the interesting thing &mdash; ask the class to predict the result FIRST.",
+          plain: "Explain what's actually happening underneath, in everyday terms."
+        }
+      ],
+
+      // callout: ONE thing worth flagging as a "gotcha" — a common mix-up, a stale
+      // slide vs. current code mismatch, a subtle behavior easy to miss. Omit (null)
+      // if there isn't a genuine one for this block — don't manufacture one.
+      callout: "A one or two sentence warning about a specific mix-up or mismatch.",
+
+      // ask: ONE discussion prompt to fire at the class instead of re-lecturing.
+      // Best when it has a concrete, checkable answer worth pausing for.
+      ask: "A question with a specific right answer, phrased for the room. (Answer: ...)",
+
+      // theorySteps + theorySummary: use for a PROCEDURAL flow worth breaking down
+      // step by step (e.g. a builder-pattern API call chain like beginTransaction()...commit()).
+      // Bold (<b>) the terms a student needs to retain — not every word, just the load-bearing ones.
+      theorySteps: [
+        { title: "step1()", body: "What this step does and why it exists, with <b>essential terms</b> bolded." },
+        { title: "step2()", body: "..." }
+      ],
+      theorySummary: "<b>Essential vocabulary:</b> Term1 &middot; Term2 &middot; Term3",
+
+      // glossary: use INSTEAD of theorySteps for a CLUSTER of related vocabulary
+      // that isn't a linear sequence (e.g. Adapter/ViewHolder/LayoutManager).
+      // Only include theorySteps OR glossary per block, not both, unless the
+      // block genuinely covers both a procedure and a separate vocabulary cluster.
+      glossary: [
+        { term: "Term", def: "Definition with <b>the load-bearing word</b> bolded." }
+      ],
+
+      // compareTable: use when the block is explicitly contrasting two approaches/
+      // widgets/patterns. First column is the row label (bolded automatically).
+      // Always include a "When to use" row if the comparison has a practical answer.
+      compareTable: {
+        caption: "Approach A vs. Approach B &mdash; when to reach for which",
+        headers: ["", "Approach A", "Approach B"],
+        rows: [
+          ["Aspect 1", "How A handles it", "How B handles it"],
+          ["When to use", "When A is the right call", "When B is the right call"]
+        ]
+      },
+
+      // codes: real, VERBATIM code snippets pulled from the actual repo files —
+      // never invented or paraphrased. `note` is a one-line caption explaining
+      // what the snippet does and why it's worth showing. `highlight: true` flags
+      // a snippet that's the ACTUAL root cause/mechanism behind something (gets an
+      // amber border + "core mechanism" badge) — use sparingly, only for the one
+      // or two snippets per guide that are genuinely the crux of a "why" question.
+      codes: [
+        {
+          tab: "ExampleFile.kt",
+          note: "One line: what this snippet does and why it's worth reading live.",
+          highlight: false,
+          lines: [
+            '<span class="k">override fun</span> exampleMethod(): <span class="k">Unit</span> {',
+            '    <span class="c">// a real comment from the real file</span>',
+            '}'
+          ]
+        }
+      ],
+
+      // previewId: ONLY set this if you're building a bespoke interactive preview
+      // for this block (a state machine, a layout mock, a toggle). Give it a unique
+      // id, add its CSS above the "ADD ANY NEW PREVIEW-SPECIFIC CSS" marker, write a
+      // renderXxx(id) builder function below (see the marker near the bottom of this
+      // script), and call it in the initial render pass. Leave this `null` for any
+      // block where forcing a simulation wouldn't add real value.
+      previewId: null
+    }
+    // ... one object per block. The LAST block's cumEnd must equal the session's
+    // total minutes. Reserve the final block for wrap-up/Q&A — fold any timing
+    // buffer into it rather than leaving slack unaccounted for.
+  ];
+
+  // ====================================================================
+  // THE ENGINE — generic renderer, timer, and persistence. Copy as-is.
+  // ====================================================================
+  var sectionsEl = document.getElementById("sections");
+  var timelineEl = document.getElementById("timeline");
+  var total = DATA[DATA.length - 1].cumEnd;
+
+  function renderListItem(item) {
+    if (typeof item === "string") return '<li>' + item + '</li>';
+    return '<li>' + item.main + '<div class="plain-en"><b>In plain terms</b>' + item.plain + '</div></li>';
+  }
+
+  function theoryHtml(b) {
+    var parts = [];
+    if (b.theorySteps && b.theorySteps.length) {
+      var stepsLi = b.theorySteps.map(function (s) {
+        return '<li><span class="ts-title">' + s.title + '</span><div class="ts-body">' + s.body + '</div></li>';
+      }).join("");
+      var summary = b.theorySummary ? '<div class="theory-summary">' + b.theorySummary + '</div>' : "";
+      parts.push('<ol class="theory-steps">' + stepsLi + '</ol>' + summary);
+    }
+    if (b.glossary && b.glossary.length) {
+      var dl = b.glossary.map(function (g) {
+        return '<dt>' + g.term + '</dt><dd>' + g.def + '</dd>';
+      }).join("");
+      parts.push('<dl class="glossary">' + dl + '</dl>');
+    }
+    if (b.compareTable) {
+      var t = b.compareTable;
+      var theadRow = '<tr>' + t.headers.map(function (h) { return '<th>' + h + '</th>'; }).join("") + '</tr>';
+      var bodyRows = t.rows.map(function (r) {
+        return '<tr>' + r.map(function (cell, i) {
+          return i === 0 ? '<th scope="row">' + cell + '</th>' : '<td>' + cell + '</td>';
+        }).join("") + '</tr>';
+      }).join("");
+      var caption = t.caption ? '<div class="compare-caption">' + t.caption + '</div>' : "";
+      parts.push(caption + '<div class="compare-wrap"><table class="compare-table"><thead>' + theadRow + '</thead><tbody>' + bodyRows + '</tbody></table></div>');
+    }
+    if (!parts.length) return "";
+    return '<div class="theory-block"><div class="theory-label">Essential theory</div>' + parts.join("") + '</div>';
+  }
+
+  DATA.forEach(function (b) {
+    var seg = document.createElement("div");
+    seg.className = "seg";
+    seg.style.flex = b.minutes + " 0 0";
+    seg.dataset.id = b.id;
+    seg.innerHTML = '<div class="fill"></div><span class="seg-label">' + b.title.replace(/<[^>]+>/g, "").split(" ")[0] + " &middot; " + b.minutes + "m</span>";
+    timelineEl.appendChild(seg);
+
+    var section = document.createElement("section");
+    section.className = "block " + b.mode;
+    section.id = b.id;
+
+    var filesHtml = (b.files || []).length
+      ? '<div class="files-row">' + b.files.map(function (f) { return '<span class="file-pill">' + f + '</span>'; }).join("") + '</div>'
+      : "";
+    var pointsHtml = (b.points || []).length
+      ? '<ul class="talk-points">' + b.points.map(renderListItem).join("") + '</ul>'
+      : "";
+    var stepsHtml = (b.steps || []).length
+      ? '<ol class="steps">' + b.steps.map(renderListItem).join("") + '</ol>'
+      : "";
+    var calloutHtml = b.callout
+      ? '<div class="callout"><span class="tag">Gotcha</span>' + b.callout + '</div>'
+      : "";
+    var askHtml = b.ask
+      ? '<div class="ask">Ask the room: <b>&ldquo;' + b.ask + '&rdquo;</b></div>'
+      : "";
+    var theoryBlockHtml = theoryHtml(b);
+    var codeHtml = (b.codes || []).map(function (c) {
+      var badge = c.highlight ? '<span class="core-badge">core mechanism</span>' : "";
+      var note = c.note ? '<p class="code-note">' + c.note + '</p>' : "";
+      return '<div class="code-panel' + (c.highlight ? ' highlight' : '') + '">' +
+        '<div class="code-tab"><span>' + c.tab + '</span>' + badge + '</div>' +
+        note +
+        '<pre class="code">' + c.lines.join("\n") + '</pre>' +
+      '</div>';
+    }).join("");
+    var previewHtml = b.previewId
+      ? '<div class="preview-block"><div class="preview-label">Live preview</div><div class="preview-slot" id="' + b.previewId + '"></div></div>'
+      : "";
+
+    section.innerHTML =
+      '<div class="block-head">' +
+        '<div>' +
+          '<div class="block-title-group">' +
+            '<span class="chip-time">' + b.minutes + ' min</span>' +
+            '<span class="chip-mode"><span class="dot"></span>' + (b.mode === "demo" ? "Live demo" : "Talk") + '</span>' +
+          '</div>' +
+          '<h2 class="block-title">' + b.title + '</h2>' +
+          '<p class="objective">' + b.objective + '</p>' +
+        '</div>' +
+        '<label class="done-toggle"><input type="checkbox" data-check="' + b.id + '"> done</label>' +
+      '</div>' +
+      filesHtml + pointsHtml + stepsHtml + calloutHtml + askHtml + theoryBlockHtml + codeHtml + previewHtml;
+
+    sectionsEl.appendChild(section);
+  });
+
+  // ---- checkbox persistence ----
+  // Change the STORE_KEY suffix per week (e.g. "w4-guide-checks-v1") so one
+  // week's checked-off progress doesn't bleed into another week's page if
+  // they're ever opened in the same browser profile.
+  var STORE_KEY = "wN-guide-checks-v1";
+  var checks = {};
+  try { checks = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"); } catch (e) { checks = {}; }
+
+  function applyCheck(id, val) {
+    var box = sectionsEl.querySelector('section#' + id);
+    if (box) box.classList.toggle("checked", val);
+  }
+
+  document.querySelectorAll("[data-check]").forEach(function (input) {
+    var id = input.getAttribute("data-check");
+    input.checked = !!checks[id];
+    applyCheck(id, input.checked);
+    input.addEventListener("change", function () {
+      checks[id] = input.checked;
+      localStorage.setItem(STORE_KEY, JSON.stringify(checks));
+      applyCheck(id, input.checked);
+    });
+  });
+
+  // ---- timer ----
+  var clockEl = document.getElementById("clock");
+  var btnStart = document.getElementById("btnStart");
+  var btnReset = document.getElementById("btnReset");
+  var elapsed = 0, running = false, intervalId = null;
+
+  function fmt(s) {
+    var m = Math.floor(s / 60), sec = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+  }
+
+  function renderTimer() {
+    clockEl.textContent = fmt(elapsed);
+    clockEl.classList.toggle("over", elapsed > total * 60);
+    var mins = elapsed / 60;
+    var segs = timelineEl.querySelectorAll(".seg");
+    segs.forEach(function (seg) {
+      var id = seg.dataset.id;
+      var b = DATA.filter(function (d) { return d.id === id; })[0];
+      var startMin = b.cumEnd - b.minutes;
+      var fillPct = 0;
+      var isActive = false, isDone = false;
+      if (mins >= b.cumEnd) { fillPct = 100; isDone = true; }
+      else if (mins > startMin) { fillPct = ((mins - startMin) / b.minutes) * 100; isActive = true; }
+      seg.querySelector(".fill").style.width = fillPct + "%";
+      seg.classList.toggle("active", isActive);
+      seg.classList.toggle("done", isDone);
+    });
+  }
+
+  btnStart.addEventListener("click", function () {
+    running = !running;
+    btnStart.textContent = running ? "Pause" : "Start";
+    if (running) {
+      intervalId = setInterval(function () { elapsed += 1; renderTimer(); }, 1000);
+    } else {
+      clearInterval(intervalId);
+    }
+  });
+
+  btnReset.addEventListener("click", function () {
+    running = false;
+    clearInterval(intervalId);
+    btnStart.textContent = "Start";
+    elapsed = 0;
+    renderTimer();
+  });
+
+  renderTimer();
+
+  // ====================================================================
+  // NEW INTERACTIVE PREVIEWS — write one renderXxx(id) function per bespoke
+  // preview, then call it at the bottom of this block. Each function should:
+  //   1. document.getElementById(id) and bail if not found
+  //   2. Build its DOM via .innerHTML on that container
+  //   3. Wire up event listeners (clicks, toggles, timers) scoped to that container
+  // Keep state (variables like `playing`, `overlay`, etc.) local to the function
+  // via closures — don't leak globals if more than one preview exists on the page.
+  //
+  // Example shape (delete this comment block and the calls below once real
+  // previews are written, or leave empty if this week has no previews):
+  //
+  // function renderExamplePreview(id) {
+  //   var root = document.getElementById(id);
+  //   if (!root) return;
+  //   root.innerHTML = '...';
+  //   // wire up listeners here
+  // }
+  // renderExamplePreview("example-preview-id");
+  // ====================================================================
+})();
+</script>
