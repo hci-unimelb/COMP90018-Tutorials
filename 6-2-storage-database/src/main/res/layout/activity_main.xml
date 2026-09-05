@@ -7,74 +7,131 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/create_database"
-        android:layout_width="250dp"
+    <!--
+        DEMO UI: every action button is paired with a one-line caption stating exactly
+        what it will do to the data — the values/conditions are otherwise buried in
+        MainActivity.kt and invisible to anyone watching the app run.
+    -->
+    <LinearLayout
+        android:id="@+id/form"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/create_database"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <Button
-        android:id="@+id/add_data"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
-        android:text="@string/add_data"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/create_database" />
+        <Button
+            android:id="@+id/create_database"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/create_database" />
 
-    <Button
-        android:id="@+id/update_data"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
-        android:text="@string/update_data"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/add_data" />
+        <TextView
+            android:id="@+id/caption_create"
+            style="@style/ActionCaption"
+            android:text="Creates BookStore.db and its tables. Only needs to run once." />
 
-    <Button
-        android:id="@+id/modify_delete_data"
-        android:layout_width="80dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@+id/update_data"
-        app:layout_constraintStart_toStartOf="@+id/barrier1" />
+        <Button
+            android:id="@+id/add_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/add_data" />
 
-    <Button
-        android:id="@+id/delete_data"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
-        android:text="@string/delete_data"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/update_data" />
+        <TextView
+            android:id="@+id/caption_add"
+            style="@style/ActionCaption"
+            android:text="Inserts 2 sample rows: The Da Vinci Code ($16.96, 454pg) and The Lost Symbol ($19.95, 510pg)." />
 
-    <Button
-        android:id="@+id/query_data"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
-        android:text="@string/query_data"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/delete_data" />
+        <Button
+            android:id="@+id/update_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/update_data" />
+
+        <TextView
+            android:id="@+id/caption_update"
+            style="@style/ActionCaption"
+            android:text="Sets the price of &quot;The Da Vinci Code&quot; to $10.99." />
+
+        <Button
+            android:id="@+id/modify_delete_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:singleLine="false"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/delete_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/delete_data" />
+
+        <TextView
+            android:id="@+id/caption_delete"
+            style="@style/ActionCaption"
+            android:text="Deletes every book matching the condition on the button above. Tap that button first to flip &lt; / &gt;." />
+
+        <Button
+            android:id="@+id/query_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/query_data" />
+
+        <TextView
+            android:id="@+id/caption_query"
+            style="@style/ActionCaption"
+            android:text="Reads every row straight from BookStore.db and refreshes the list below." />
+
+        <TextView
+            android:id="@+id/query_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textSize="20sp" />
+
+    </LinearLayout>
 
     <TextView
-        android:id="@+id/query_count"
+        android:id="@+id/preview_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@id/barrier1"
-        app:layout_constraintTop_toBottomOf="@+id/modify_delete_data"
-        app:layout_constraintBottom_toBottomOf="@+id/query_data"/>
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:textStyle="bold"
+        android:text="Book table (live)"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/form" />
 
-    <androidx.constraintlayout.widget.Barrier
-        android:id="@+id/barrier1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:barrierDirection="right"
-        app:constraint_referenced_ids="delete_data" />
+    <ScrollView
+        android:id="@+id/preview_scroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="#EEEEEE"
+        android:padding="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/preview_label"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:id="@+id/data_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="13sp"
+            android:text="(no rows yet — tap Create Database, then Add Data)" />
+
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

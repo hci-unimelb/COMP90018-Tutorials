@@ -1,9 +1,9 @@
-# Tutorial 7-2: Firebase Realtime Database
+# Tutorial 7-2: Cloud Firestore
 
-Demonstrates the [Firebase Android SDK](https://firebase.google.com/docs/android/setup) for real-time data synchronisation:
+Demonstrates the [Firebase Android SDK](https://firebase.google.com/docs/android/setup) for real-time data sync using **Cloud Firestore**:
 
-- **Write** a string value to Firebase Realtime Database when the user taps Send
-- **Listen** for changes with `ValueEventListener` — the UI updates automatically whenever any client writes to the same path
+- **Write** a message to a Firestore collection when the user taps Send
+- **Listen** for changes with `addSnapshotListener` — the list of messages updates automatically whenever any client writes to the collection
 
 ---
 
@@ -36,15 +36,32 @@ This module will **not compile** until you add your own `google-services.json`. 
 
 3. Click **Next** through the remaining Firebase setup steps — you do not need to modify `build.gradle` manually, it is already configured.
 
-### Step 4 — Enable Realtime Database
+### Step 4 — Enable Firestore
 
-1. In the Firebase console sidebar, go to **Build → Realtime Database**.
+1. In the Firebase console sidebar, go to **Build → Firestore Database**.
 2. Click **Create database**.
 3. Choose the region closest to you and click **Next**.
 4. Select **Start in test mode** (allows all reads/writes for 30 days — fine for a tutorial).
 5. Click **Enable**.
 
-### Step 5 — Sync and run
+### Step 5 — Open the security rules
+
+Even in test mode, rules expire after 30 days or may already be locked down. Go to **Firestore Database → Rules** and set:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+Click **Publish**. Never use these rules in a real app.
+
+### Step 6 — Sync and run
 
 1. In Android Studio: **File → Sync Project with Gradle Files**.
 2. Run on a device or emulator (API 33+).
@@ -53,17 +70,20 @@ This module will **not compile** until you add your own `google-services.json`. 
 
 ## What the app does
 
-The app reads and writes a single string at the Firebase Realtime Database path `Test`.
+Each tap of **Send Message** adds a new document to the `messages` collection — it does not overwrite previous messages. A snapshot listener on the whole collection (ordered by `timestamp`) keeps the on-screen list in sync in real time.
 
 ```
-Firebase Realtime Database
-└── Test: "hello"          ← any client can write here
+Firestore
+└── messages (collection)
+      ├── <auto-id>: { text: "hi", timestamp: ... }
+      ├── <auto-id>: { text: "hello", timestamp: ... }
+      └── <auto-id>: { text: "hey", timestamp: ... }   ← any client can add here
 ```
 
-- **Send** — writes the EditText value to `Test`
-- **Received** display — `ValueEventListener.onDataChange` fires whenever `Test` changes on the server, updating the TextView in real time
+- **Send** — adds a new document with the EditText value and a server timestamp
+- **Message list** — `addSnapshotListener` fires whenever any document in `messages` changes, rebuilding the displayed list (oldest to newest) in the scrollable TextView
 
-Because `addValueEventListener` sets up a persistent subscription, opening the app on two devices and sending from one immediately updates the other.
+Because `addSnapshotListener` sets up a persistent subscription, opening the app on two devices and sending from one immediately updates the other.
 
 ---
 
@@ -71,10 +91,10 @@ Because `addValueEventListener` sets up a persistent subscription, opening the a
 
 ```
 MainActivity
-  └── FirebaseDatabase.getInstance()
-        └── DatabaseReference ("Test")
-              ├── setValue(text)          ← write
-              └── addValueEventListener   ← real-time read
+  └── FirebaseFirestore.getInstance()
+        └── CollectionReference ("messages")
+              ├── add(text, timestamp)                 ← write (new doc per message)
+              └── orderBy("timestamp").addSnapshotListener  ← real-time read of the whole list
 ```
 
 All Firebase I/O is asynchronous and callback-based — the SDK handles threading internally.
@@ -85,8 +105,8 @@ All Firebase I/O is asynchronous and callback-based — the SDK handles threadin
 
 | File | Purpose |
 |---|---|
-| `MainActivity.kt` | All Firebase logic — init, write, listen |
-| `activity_main.xml` | EditText (input) + Button (send) + TextView (received) |
+| `MainActivity.kt` | All Firestore logic — init, add message, listen to list |
+| `activity_main.xml` | EditText (input) + Button (send) + scrollable TextView (message list) |
 | `build.gradle.kts` | Firebase BOM + `google-services` plugin applied |
 | `google-services.json` | **Your credentials** — not in repo, download from Firebase Console |
 | `google-services.json.template` | Shows the expected JSON structure |
@@ -99,7 +119,7 @@ All Firebase I/O is asynchronous and callback-based — the SDK handles threadin
 |---|---|
 | `com.google.gms:google-services` (plugin) | Reads `google-services.json` and configures the SDK |
 | `com.google.firebase:firebase-bom:33.3.0` | BOM that pins all Firebase library versions |
-| `com.google.firebase:firebase-database` | Realtime Database client |
+| `com.google.firebase:firebase-firestore` | Cloud Firestore client |
 | `com.google.firebase:firebase-analytics` | Required by the google-services plugin |
 
 ---
@@ -109,17 +129,8 @@ All Firebase I/O is asynchronous and callback-based — the SDK handles threadin
 **`File google-services.json is missing`**
 You have not placed the file yet. Follow Step 3 above. Make sure the file is in `7-2-connectivity-firebase/` (next to `build.gradle.kts`), not deeper inside `src/`.
 
-**`Permission denied` when writing**
-Your Realtime Database rules have expired or were set to locked mode. In the Firebase console go to **Realtime Database → Rules** and set:
-```json
-{
-  "rules": {
-    ".read": true,
-    ".write": true
-  }
-}
-```
-This is fine for a tutorial. Never use these rules in a real app.
+**`PERMISSION_DENIED` when writing or reading**
+Your Firestore rules have expired or were set to locked mode. Repeat Step 5 above.
 
-**The received field never updates**
-Make sure you are connected to the internet. Firebase Realtime Database requires a live connection; it does not cache writes on the first run without prior connection.
+**The message list never updates**
+Make sure you are connected to the internet. Firestore requires a live connection for real-time updates on a fresh install.

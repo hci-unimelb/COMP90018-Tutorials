@@ -2,9 +2,9 @@ package com.example.connectivity_bluetooth
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
@@ -17,23 +17,30 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.connectivity_bluetooth.databinding.ActivityMainBinding
+import com.example.connectivity_bluetooth.databinding.ItemBleDeviceBinding
 
 /**
  * Tutorial 7-4: Bluetooth Low Energy (BLE) Scanner Demo
  *
- * Demonstrates:
+ * This is written as a reference for the BLE best practices you'll want in
+ * your own project, not just a one-off demo:
  *   1. Runtime permission request for BLUETOOTH_SCAN / BLUETOOTH_CONNECT (API 31+)
  *   2. Checking if Bluetooth is enabled and prompting the user to enable it
- *   3. BLE device scanning using BluetoothLeScanner + ScanCallback
- *   4. Connecting to a discovered BLE device with BluetoothGatt
- *   5. Discovering GATT services and listing their UUIDs
+ *   3. Scanning with an auto-stop timeout, deduplicated by MAC address
+ *   4. Stopping the scan before connecting (a device won't connect reliably
+ *      while the radio is still busy scanning)
+ *   5. Connecting to a chosen device with BluetoothGatt and discovering its
+ *      GATT services/characteristics
+ *   6. Always closing the previous GATT connection before opening a new one,
+ *      and always closing it in onDestroy -- BluetoothGatt objects are a
+ *      limited system resource (Android allows ~7 concurrent connections)
  *
- * BLE scanning only works on a real device -- the emulator has no BT radio.
+ * BLE scanning and connecting only work on a real device -- the emulator has
+ * no Bluetooth radio.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -44,17 +51,16 @@ class MainActivity : AppCompatActivity() {
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bleScanner: BluetoothLeScanner? = null
 
-    // Tracks currently open GATT connection so we can close it in onDestroy
+    // The one GATT connection this demo keeps open at a time.
     private var activeGatt: BluetoothGatt? = null
 
     // Scan auto-stops after this many milliseconds (battery safety)
-    private val SCAN_PERIOD_MS = 10_000L
+    private val scanPeriodMs = 10_000L
     private var isScanning = false
     private val scanHandler = Handler(Looper.getMainLooper())
 
-    // Collected scan results
-    private val discoveredDevices = mutableListOf<BleDevice>()
-    private val displayLines = mutableListOf<String>()
+    // Collected scan results, keyed by MAC address so re-advertising devices update in place
+    private val discoveredDevices = linkedMapOf<String, BleDevice>()
 
     // -----------------------------------------------------------------------
     // Runtime permission launcher (API 31+)
@@ -67,17 +73,19 @@ class MainActivity : AppCompatActivity() {
             startBleScan()
         } else {
             binding.statusText.text = "Bluetooth permissions denied. Cannot scan."
+            binding.statusText.setTextColor(getColor(R.color.status_error))
         }
     }
 
     // Launcher to ask user to enable Bluetooth
     private val enableBtLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
+    ) {
         if (bluetoothAdapter?.isEnabled == true) {
             checkPermissionsAndScan()
         } else {
             binding.statusText.text = "Bluetooth is disabled. Enable it to scan."
+            binding.statusText.setTextColor(getColor(R.color.status_error))
         }
     }
 
@@ -86,28 +94,26 @@ class MainActivity : AppCompatActivity() {
     // -----------------------------------------------------------------------
 
     /**
-     * ScanCallback fires once per discovered device (or periodically for re-advertising devices).
-     * Runs on a background thread -- post UI updates to the Main Thread.
+     * ScanCallback fires once per advertisement packet (repeatedly for the same
+     * device as long as it keeps advertising). Runs on a background thread --
+     * post UI updates to the Main Thread.
      */
     private val scanCallback = object : ScanCallback() {
 
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
             val name = device.name ?: "Unknown"
-            val address = device.address
-            val rssi = result.rssi
-
-            // Avoid duplicates by MAC address
-            if (discoveredDevices.none { it.address == address }) {
-                discoveredDevices.add(BleDevice(name, address, rssi))
-                runOnUiThread { refreshDeviceList() }
-            }
+            // Update in place if we've seen this MAC before, so RSSI stays live
+            // instead of piling up duplicate rows for the same device.
+            discoveredDevices[device.address] = BleDevice(name, device.address, result.rssi, device)
+            runOnUiThread { refreshDeviceList() }
         }
 
         override fun onScanFailed(errorCode: Int) {
             runOnUiThread {
                 binding.statusText.text = "Scan failed (error $errorCode). " +
                     "Ensure Bluetooth and Location are enabled."
+                binding.statusText.setTextColor(getColor(R.color.status_error))
             }
         }
     }
@@ -126,29 +132,35 @@ class MainActivity : AppCompatActivity() {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     Log.d(TAG, "GATT connected. Discovering services...")
-                    runOnUiThread { binding.statusText.text = "Connected! Discovering services..." }
+                    runOnUiThread {
+                        binding.statusText.text = "Connected. Discovering services..."
+                        binding.statusText.setTextColor(getColor(R.color.status_connected))
+                    }
                     gatt.discoverServices()  // must be called to enumerate services
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     Log.d(TAG, "GATT disconnected")
-                    runOnUiThread { binding.statusText.text = "Disconnected." }
+                    runOnUiThread {
+                        binding.statusText.text = "Disconnected."
+                        binding.statusText.setTextColor(getColor(R.color.status_idle))
+                    }
                     gatt.close()
-                    activeGatt = null
+                    if (activeGatt === gatt) activeGatt = null
                 }
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                val serviceList = gatt.services.joinToString("\n") { service ->
+                val serviceList = gatt.services.joinToString("\n\n") { service ->
                     "Service: ${service.uuid}\n" +
-                    service.characteristics.joinToString("\n") { char ->
-                        "  Characteristic: ${char.uuid}"
-                    }
+                        service.characteristics.joinToString("\n") { char ->
+                            "  Characteristic: ${char.uuid}"
+                        }
                 }
                 runOnUiThread {
                     binding.statusText.text = "Services discovered:"
-                    binding.deviceListText.text = serviceList
+                    showRawText(serviceList)
                 }
             }
         }
@@ -175,14 +187,12 @@ class MainActivity : AppCompatActivity() {
         binding.scanButton.setOnClickListener {
             if (isScanning) stopBleScan() else checkPermissionsAndScan()
         }
-
-        binding.statusText.text = "Press Scan to discover nearby BLE devices."
     }
 
     override fun onDestroy() {
         super.onDestroy()
         stopBleScan()
-        // Always close GATT to free connection slots (Android limits ~7 concurrent)
+        // Always close GATT to free the connection slot (Android limits ~7 concurrent).
         activeGatt?.close()
         activeGatt = null
     }
@@ -216,17 +226,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun startBleScan() {
         discoveredDevices.clear()
-        displayLines.clear()
-        binding.deviceListText.text = ""
+        refreshDeviceList()
         binding.statusText.text = "Scanning... (10s)"
+        binding.statusText.setTextColor(getColor(R.color.status_scanning))
         binding.scanButton.text = "Stop Scan"
         isScanning = true
 
         bleScanner = bluetoothAdapter?.bluetoothLeScanner
         bleScanner?.startScan(scanCallback)
 
-        // Auto-stop after SCAN_PERIOD_MS to conserve battery
-        scanHandler.postDelayed({ stopBleScan() }, SCAN_PERIOD_MS)
+        // Auto-stop after scanPeriodMs to conserve battery
+        scanHandler.postDelayed({ stopBleScan() }, scanPeriodMs)
     }
 
     private fun stopBleScan() {
@@ -234,17 +244,72 @@ class MainActivity : AppCompatActivity() {
             bleScanner?.stopScan(scanCallback)
             isScanning = false
             binding.scanButton.text = "Scan"
-            binding.statusText.text = "Scan complete. Found ${discoveredDevices.size} device(s). Tap a device to connect."
+            binding.statusText.text = "Found ${discoveredDevices.size} device(s). Tap one to connect."
+            binding.statusText.setTextColor(getColor(R.color.status_idle))
             scanHandler.removeCallbacksAndMessages(null)
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Connect logic
+    // -----------------------------------------------------------------------
+
+    /**
+     * Connects to a device the user tapped in the results list.
+     *
+     * Best practices applied here:
+     *  - Stop scanning first -- connecting is more reliable with the radio
+     *    not also busy scanning.
+     *  - Close any previous GATT connection before opening a new one, so a
+     *    student tapping a second device doesn't silently leak the first
+     *    connection.
+     *  - autoConnect = false -- correct for "user just tapped this nearby
+     *    device", which connects immediately; autoConnect = true is for
+     *    background reconnection to a device you expect to appear later.
+     */
+    private fun connectToDevice(device: BleDevice) {
+        stopBleScan()
+        activeGatt?.close()
+
+        binding.statusText.text = "Connecting to ${device.name}..."
+        binding.statusText.setTextColor(getColor(R.color.status_scanning))
+        activeGatt = device.device.connectGatt(this, /* autoConnect = */ false, gattCallback)
+    }
+
+    // -----------------------------------------------------------------------
+    // List rendering
+    // -----------------------------------------------------------------------
+
     private fun refreshDeviceList() {
-        val text = discoveredDevices.mapIndexed { i, d ->
-            "[${i + 1}] ${d.name}\n     ${d.address}   RSSI: ${d.rssi} dBm"
-        }.joinToString("\n\n")
-        binding.deviceListText.text = text
-        binding.statusText.text = "Scanning... found ${discoveredDevices.size} device(s)"
+        val container = binding.deviceListContainer
+        container.removeAllViews()
+
+        if (discoveredDevices.isEmpty()) {
+            val empty = ItemBleDeviceBinding.inflate(layoutInflater, container, false)
+            empty.deviceName.text = if (isScanning) "Scanning..." else "No devices yet. Press Scan."
+            empty.deviceName.isEnabled = false
+            empty.deviceMeta.text = ""
+            container.addView(empty.root)
+            return
+        }
+
+        for (device in discoveredDevices.values) {
+            val row = ItemBleDeviceBinding.inflate(layoutInflater, container, false)
+            row.deviceName.text = device.name
+            row.deviceMeta.text = "${device.address}   ${device.rssi} dBm"
+            row.root.setOnClickListener { connectToDevice(device) }
+            container.addView(row.root)
+        }
+    }
+
+    /** Swaps the results list for a plain block of text (used to show discovered GATT services). */
+    private fun showRawText(text: String) {
+        val container = binding.deviceListContainer
+        container.removeAllViews()
+        val row = ItemBleDeviceBinding.inflate(layoutInflater, container, false)
+        row.deviceName.text = "Services"
+        row.deviceMeta.text = text
+        container.addView(row.root)
     }
 
     companion object {

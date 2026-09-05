@@ -1,11 +1,19 @@
 package com.example.storage_internalstorage
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.example.storage_internalstorage.databinding.ActivityMainBinding
 import java.io.FileNotFoundException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * MAINACTIVITY: INTERNAL STORAGE FILES
@@ -34,6 +42,9 @@ class MainActivity : AppCompatActivity() {
     // Name of the private text file we will create
     private val FILE_NAME = "myFile"
 
+    // Name of the private image file we will create
+    private val IMAGE_FILE_NAME = "myImage.png"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -44,6 +55,10 @@ class MainActivity : AppCompatActivity() {
         binding.saveButton.setOnClickListener { save(binding.editText.text.toString()) }
         binding.loadButton.setOnClickListener { binding.editText.setText(load()) }
         binding.clearButton.setOnClickListener { binding.editText.setText("") }
+
+        binding.saveImageButton.setOnClickListener { saveImage(renderTimestampBitmap()) }
+        binding.loadImageButton.setOnClickListener { binding.imagePreview.setImageBitmap(loadImage()) }
+        binding.clearImageButton.setOnClickListener { binding.imagePreview.setImageBitmap(null) }
     }
 
     /**
@@ -80,6 +95,63 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             return ""
+        }
+    }
+
+    /**
+     * DEMO: builds a small bitmap in memory — a solid background plus the current time —
+     * so every tap produces visibly different bytes. Stands in for "a photo the user took"
+     * or "a thumbnail the app downloaded," without needing a camera or network for the demo.
+     */
+    private fun renderTimestampBitmap(): Bitmap {
+        val bitmap = Bitmap.createBitmap(400, 300, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.rgb(14, 122, 108)) // same teal as the rest of this week's slides
+
+        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val paint = Paint().apply {
+            color = Color.WHITE
+            textSize = 42f
+            textAlign = Paint.Align.CENTER
+            isAntiAlias = true
+        }
+        canvas.drawText("Saved at", bitmap.width / 2f, 130f, paint)
+        canvas.drawText(time, bitmap.width / 2f, 180f, paint)
+        return bitmap
+    }
+
+    /**
+     * Writes a bitmap's raw PNG bytes to our private internal file.
+     *
+     * Same openFileOutput() as the text demo above — Internal Storage doesn't care what the
+     * bytes mean. bitmap.compress() is what turns pixels into a PNG byte stream to write.
+     */
+    private fun saveImage(bitmap: Bitmap) {
+        try {
+            openFileOutput(IMAGE_FILE_NAME, MODE_PRIVATE).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+            binding.imagePreview.setImageBitmap(bitmap)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Reads those PNG bytes back off disk and decodes them into a displayable Bitmap.
+     * Returns null if nothing's been saved yet — same "expected first run" shape as load().
+     */
+    private fun loadImage(): Bitmap? {
+        return try {
+            openFileInput(IMAGE_FILE_NAME).use { input ->
+                BitmapFactory.decodeStream(input)
+            }
+        } catch (e: FileNotFoundException) {
+            Log.d(TAG, "No saved image yet. Returning null.")
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 

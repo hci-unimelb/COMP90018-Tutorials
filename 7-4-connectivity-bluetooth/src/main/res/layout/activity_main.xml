@@ -8,14 +8,27 @@
 
     <TextView
         android:id="@+id/label_title"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="48dp"
         android:text="BLE Device Scanner"
         android:textSize="20sp"
         android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/label_subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Scan nearby devices, then tap one to connect and read its GATT services."
+        android:textColor="@color/status_idle"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/label_title" />
 
     <Button
         android:id="@+id/scan_button"
@@ -24,36 +37,52 @@
         android:layout_marginTop="16dp"
         android:text="Scan"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/label_title" />
+        app:layout_constraintTop_toBottomOf="@+id/label_subtitle" />
 
     <TextView
         android:id="@+id/status_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Press Scan to start."
-        android:textColor="@android:color/holo_blue_dark"
+        android:layout_marginStart="14dp"
+        android:text="Press Scan to discover nearby BLE devices."
+        android:textColor="@color/status_idle"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/scan_button"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/scan_button"
+        app:layout_constraintTop_toTopOf="@+id/scan_button" />
+
+    <TextView
+        android:id="@+id/label_results"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="DISCOVERED DEVICES"
+        android:textColor="@color/status_idle"
+        android:textSize="11sp"
+        android:letterSpacing="0.08"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/scan_button" />
 
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
+        android:background="@color/surface_muted"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/status_text">
+        app:layout_constraintTop_toBottomOf="@+id/label_results">
 
-        <TextView
-            android:id="@+id/device_list_text"
+        <LinearLayout
+            android:id="@+id/device_list_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:lineSpacingExtra="4dp"
-            android:text=""
-            android:textSize="13sp" />
+            android:orientation="vertical"
+            android:divider="?android:attr/listDivider"
+            android:showDividers="middle" />
+
     </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

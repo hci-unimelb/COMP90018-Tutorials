@@ -1,118 +1,100 @@
 package com.example.connectivity_websocket
 
 import android.util.Log
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.WebSocket
-import okhttp3.WebSocketListener
-import java.util.concurrent.TimeUnit
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.decodeRecord
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 /**
- * Manages a single WebSocket connection to the echo server.
+ * Listens for INSERTs on Supabase's `messages` table over Realtime's WebSocket
+ * connection (supabase-kt's Realtime plugin -- see the README's note on how this
+ * relates to 7-3's Postgrest-only demo and to the raw OkHttp echo-server version
+ * this class used to wrap).
  *
- * Responsibilities:
- *   - Hold the OkHttpClient and WebSocket instance
- *   - Provide connect() / disconnect() / send() methods
- *   - Deliver events (open, message, failure, closed) via a callback lambda
+ * A row inserted from ANYWHERE -- this app's Send button, the Supabase Table
+ * Editor, the SQL editor, another device -- arrives here the same way, because
+ * they all go through the same Postgres table and the same Realtime channel.
  *
- * Why a separate class?
- *   Keeps Activity clean -- it only interacts with WebSocketManager, not raw OkHttp.
- *   Also makes it easier to swap out the server URL or library later.
- *
- * Thread safety:
- *   OkHttp's WebSocketListener callbacks run on its internal thread pool.
- *   The onEvent callback is always dispatched to the CALLER'S thread via the provided
- *   handler -- or MainActivity calls runOnUiThread() before updating views.
+ * Thread safety: postgresChangeFlow delivers on a background dispatcher; the
+ * onEvent callback is dispatched as-is -- MainActivity wraps it in runOnUiThread.
  */
 class WebSocketManager(private val onEvent: (WsEvent) -> Unit) {
 
-    /**
-     * Sealed class representing all possible WebSocket events.
-     * Using a sealed class means MainActivity can handle every case exhaustively with `when`.
-     */
     sealed class WsEvent {
-        object Opened                         : WsEvent()
+        object Opened : WsEvent()
         data class MessageReceived(val text: String) : WsEvent()
         data class Error(val message: String) : WsEvent()
-        object Closed                         : WsEvent()
+        object Closed : WsEvent()
     }
 
-    private val client = OkHttpClient.Builder()
-        // readTimeout 0 = no timeout for the persistent WebSocket connection
-        // (a non-zero timeout would close the socket after idle time)
-        .readTimeout(0, TimeUnit.MILLISECONDS)
-        .build()
+    private val supabase = SupabaseClientProvider.client
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private var webSocket: WebSocket? = null
-    val isConnected: Boolean get() = webSocket != null
+    private var channel: RealtimeChannel? = null
+    val isConnected: Boolean get() = channel != null
 
-    private val listener = object : WebSocketListener() {
+    /** Subscribes to INSERTs on [table]. Does nothing if already connected. */
+    fun connect(table: String = "messages") {
+        if (channel != null) return
+        scope.launch {
+            try {
+                val ch = supabase.channel("messages-changes")
 
-        override fun onOpen(webSocket: WebSocket, response: Response) {
-            Log.d(TAG, "WebSocket opened")
-            onEvent(WsEvent.Opened)
+                // Must register the flow BEFORE calling subscribe().
+                ch.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+                    this.table = table
+                }.onEach { insert ->
+                    val row = insert.decodeRecord<Message>()
+                    onEvent(WsEvent.MessageReceived(row.content))
+                }.launchIn(scope)
+
+                ch.subscribe(blockUntilSubscribed = true)
+                channel = ch
+                Log.d(TAG, "Subscribed to $table changes")
+                onEvent(WsEvent.Opened)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to subscribe: ${e.message}")
+                onEvent(WsEvent.Error(e.message ?: "Unknown error"))
+            }
         }
+    }
 
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d(TAG, "Message received: $text")
-            onEvent(WsEvent.MessageReceived(text))
+    /** Inserts a row into `messages`; the insert then arrives back via the subscribed flow. */
+    fun send(text: String): Boolean {
+        if (channel == null) return false
+        scope.launch {
+            try {
+                supabase.from("messages").insert(Message(content = text))
+            } catch (e: Exception) {
+                Log.e(TAG, "Insert failed: ${e.message}")
+                onEvent(WsEvent.Error(e.message ?: "Insert failed"))
+            }
         }
+        return true
+    }
 
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-            // Server is initiating close -- acknowledge it
-            webSocket.close(1000, null)
-            Log.d(TAG, "Closing: code=$code reason=$reason")
-        }
-
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            Log.d(TAG, "Closed")
-            this@WebSocketManager.webSocket = null
+    fun disconnect() {
+        val ch = channel ?: return
+        channel = null
+        scope.launch {
+            ch.unsubscribe()
             onEvent(WsEvent.Closed)
         }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            Log.e(TAG, "Failure: ${t.message}")
-            this@WebSocketManager.webSocket = null
-            onEvent(WsEvent.Error(t.message ?: "Unknown error"))
-        }
     }
 
-    /**
-     * Opens a WebSocket connection to [url].
-     * Does nothing if already connected.
-     */
-    fun connect(url: String) {
-        if (webSocket != null) return
-        val request = Request.Builder().url(url).build()
-        webSocket = client.newWebSocket(request, listener)
-    }
-
-    /**
-     * Sends a text message over the open WebSocket.
-     * Returns false if the connection is not open or the message cannot be enqueued.
-     */
-    fun send(text: String): Boolean {
-        return webSocket?.send(text) ?: false
-    }
-
-    /**
-     * Closes the connection with a Normal Closure code (1000).
-     * Per the WebSocket spec, code 1000 = intentional, clean close.
-     */
-    fun disconnect() {
-        webSocket?.close(1000, "User disconnected")
-        webSocket = null
-    }
-
-    /**
-     * Shuts down OkHttp's internal thread pool.
-     * Call this only when the client will never be used again (e.g. in onDestroy).
-     * Forgetting this leaks threads.
-     */
+    /** Call only when this manager will never be used again (e.g. onDestroy). */
     fun shutdown() {
-        disconnect()
-        client.dispatcher.executorService.shutdown()
+        channel?.let { ch -> scope.launch { ch.unsubscribe() } }
+        channel = null
     }
 
     companion object {

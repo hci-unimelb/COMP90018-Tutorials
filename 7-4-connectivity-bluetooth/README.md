@@ -12,9 +12,15 @@ This module demonstrates Bluetooth Low Energy (BLE) scanning and GATT connection
 | Prompting user to enable Bluetooth | `MainActivity` — `enableBtLauncher` |
 | BLE device scanning | `BluetoothLeScanner.startScan()` + `ScanCallback` |
 | Auto-stop scan (battery safety) | `Handler.postDelayed()` with 10 s timeout |
-| Deduplication of scan results | MAC address check in `onScanResult` |
+| Live-updating scan results, keyed by MAC | `LinkedHashMap` in `onScanResult` |
+| Stopping the scan before connecting | `connectToDevice()` calls `stopBleScan()` first |
+| Tap a result to connect | `item_ble_device.xml` row + `connectToDevice()` |
 | GATT connection to a device | `BluetoothDevice.connectGatt()` |
+| Closing the previous connection before opening a new one | `activeGatt?.close()` in `connectToDevice()` |
 | Service & characteristic discovery | `BluetoothGatt.discoverServices()` + `BluetoothGattCallback` |
+| Releasing the GATT connection on exit | `activeGatt?.close()` in `onDestroy()` |
+
+> **Fixed from an earlier pass of this demo:** the UI used to say "tap a device to connect" but the list wasn't clickable and nothing ever called `connectGatt()` — and `activeGatt` was never assigned on connect, so the `onDestroy()` cleanup wasn't actually closing anything. Both are wired up correctly now; see `connectToDevice()`.
 
 ---
 
@@ -62,23 +68,20 @@ These are declared with `android:maxSdkVersion="30"` so they are not requested o
 ## Architecture overview
 
 ### `BleDevice.kt`
-A plain Kotlin `data class` holding the three fields surfaced for each discovered device: `name`, `address` (MAC), and `rssi` (signal strength in dBm). Keeping it separate from `MainActivity` makes it easy to extend (e.g., add a `scanRecord` field later).
+A plain Kotlin `data class` holding the fields surfaced for each discovered device: `name`, `address` (MAC), `rssi` (signal strength in dBm), and the raw `BluetoothDevice` handle — kept alongside the display fields so `connectToDevice()` never needs to re-look the device up by address.
 
 ### `MainActivity.kt`
 All BLE logic lives here for tutorial clarity. Key components:
 
 - **`BluetoothManager` / `BluetoothAdapter`** — entry point to the Bluetooth subsystem. `BluetoothManager` is obtained via `getSystemService`; the adapter is retrieved from it.
 - **`BluetoothLeScanner`** — obtained from the adapter. Exposes `startScan` / `stopScan`.
-- **`ScanCallback`** — anonymous object. `onScanResult` fires on the scanner thread for each advertisement packet received. Results are deduplicated by MAC address before updating the UI.
+- **`ScanCallback`** — anonymous object. `onScanResult` fires on the scanner thread for each advertisement packet received; results are stored in a `LinkedHashMap<address, BleDevice>` so a device seen again just updates its RSSI in place.
+- **`connectToDevice()`** — stops the scan, closes any previous `activeGatt`, then calls `device.connectGatt(this, false, gattCallback)` and keeps the result in `activeGatt`.
 - **`BluetoothGattCallback`** — anonymous object handling async GATT events. `onConnectionStateChange` fires when the link comes up or drops; `onServicesDiscovered` fires after `discoverServices()` completes.
 - **`scanHandler`** — a `Handler` on the main looper used to post the auto-stop runnable after 10 seconds, protecting battery.
 
-### `activity_main.xml`
-A single `ConstraintLayout` with:
-- A **title** `TextView`
-- A **Scan/Stop** `Button` (toggles label and scan state)
-- A **status** `TextView` (shows current state in blue)
-- A `ScrollView` wrapping a monospace `TextView` for the device/service list
+### `activity_main.xml` + `item_ble_device.xml`
+A `ConstraintLayout` with a title/subtitle, a **Scan/Stop** `Button` next to an inline status `TextView`, and a `ScrollView` wrapping a `LinearLayout` container. Each scan result (and, later, the discovered-services text) is inflated from `item_ble_device.xml` — a small clickable row (name + monospace MAC/RSSI) using `?attr/selectableItemBackground` for the tap ripple. That row layout is deliberately its own file: it's the same shape a RecyclerView item would take, so swapping the manual container for a `RecyclerView` later is a drop-in change, not a rewrite.
 
 ---
 

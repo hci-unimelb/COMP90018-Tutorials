@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One row in the scan results list. Kept as its own layout (rather than
+    building Views in Kotlin) so it inflates the same way a RecyclerView
+    item would — the pattern to reuse once a list grows past a handful
+    of rows is swapping the manual container for a RecyclerView + this
+    same item layout, nothing else changes.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="?attr/selectableItemBackground"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="10dp">
+
+    <TextView
+        android:id="@+id/device_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        tools:text="Pixel Buds Pro" />
+
+    <TextView
+        android:id="@+id/device_meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
+        android:textColor="@color/status_idle"
+        tools:text="AA:BB:CC:DD:EE:FF   -52 dBm" />
+
+</LinearLayout>

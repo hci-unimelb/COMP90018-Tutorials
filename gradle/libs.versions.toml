@@ -16,6 +16,8 @@ navigationFragment = "2.8.0"
 navigationUi = "2.8.0"
 roomCompilerProcessingTesting = "2.6.1"
 firebaseDatabase = "21.0.0"
+credentials = "1.3.0"
+googleid = "1.1.1"
 
 [libraries]
 greendao = { module = "org.greenrobot:greendao", version.ref = "greendao" }
@@ -33,6 +35,9 @@ navigation-fragment = { group = "androidx.navigation", name = "navigation-fragme
 navigation-ui = { group = "androidx.navigation", name = "navigation-ui", version.ref = "navigationUi" }
 room-compiler-processing-testing = { group = "androidx.room", name = "room-compiler-processing-testing", version.ref = "roomCompilerProcessingTesting" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
+credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,16 +1,17 @@
 # 7-5 Connectivity: WebSocket Demo
 
-A tutorial Android app demonstrating real-time, full-duplex communication using WebSockets via OkHttp. The app connects to a public echo server (`wss://echo.websocket.org`) that reflects every message back to the sender.
+A tutorial Android app demonstrating real-time, full-duplex communication over WebSockets. The app subscribes to Supabase Realtime's Postgres Changes feed for the `messages` table (the same table used in 7-3-connectivity-supabase) -- a row inserted from **anywhere** (this app's Send button, the Supabase dashboard, the SQL editor, another device) shows up live in the log.
+
+> Earlier versions of this demo connected to a public echo server (`wss://echo.websocket.org`) instead. Supabase Realtime is itself a WebSocket connection under the hood (supabase-kt's `Realtime` plugin) -- see "Architecture" below.
 
 ---
 
 ## What it Demonstrates
 
-- **Full-duplex WebSocket communication** -- send and receive messages simultaneously over a single persistent connection
-- **OkHttp WebSocketListener** -- handling `onOpen`, `onMessage`, `onClosing`, `onClosed`, and `onFailure` callbacks
-- **Sending text frames** -- calling `WebSocket.send(text)` to transmit data
-- **Clean lifecycle management** -- connecting on user action, shutting down OkHttp's thread pool in `onDestroy`
-- **Thread safety** -- OkHttp callbacks arrive on background threads; `runOnUiThread {}` is used before touching Views
+- **Full-duplex, real-time communication** -- a WebSocket connection that pushes database change events to the app as they happen
+- **supabase-kt's Realtime plugin** -- `postgresChangeFlow<PostgresAction.Insert>` + `channel.subscribe()`, the SDK-level equivalent of OkHttp's `WebSocketListener` callbacks
+- **Clean lifecycle management** -- subscribing on user action, unsubscribing in `onDestroy`
+- **Thread safety** -- Realtime callbacks arrive on a background dispatcher; `runOnUiThread {}` is used before touching Views
 
 ---
 
@@ -36,13 +37,13 @@ WebSocket starts as an HTTP upgrade handshake (`Upgrade: websocket` header), the
 | 1006 | Abnormal Closure -- connection lost without close frame |
 | 1011 | Internal Error -- server-side error |
 
-This app uses **1000** when the user taps Disconnect, signalling a clean, intentional close.
+These are the codes the underlying WebSocket protocol uses; supabase-kt's `channel.unsubscribe()` handles closing cleanly for you.
 
 ---
 
 ## Thread Safety
 
-OkHttp's `WebSocketListener` callbacks (`onOpen`, `onMessage`, etc.) are invoked on OkHttp's internal thread pool -- **not** the Android Main Thread. Updating UI from a background thread causes crashes.
+Realtime's callbacks (delivered via `postgresChangeFlow`) run on a background dispatcher -- **not** the Android Main Thread. Updating UI from a background thread causes crashes.
 
 Solution used in this app:
 
@@ -61,62 +62,70 @@ private val wsManager = WebSocketManager { event ->
 ```
 MainActivity
     |
-    +-- WebSocketManager          (owns OkHttpClient + WebSocket)
+    +-- WebSocketManager              (owns the Supabase Realtime channel)
             |
-            +-- WebSocketListener (OkHttp callbacks)
-            |       onOpen / onMessage / onClosing / onClosed / onFailure
+            +-- RealtimeChannel       (supabase-kt -- a WebSocket connection under the hood)
+            |       postgresChangeFlow<PostgresAction.Insert> / subscribe() / unsubscribe()
             |
             +-- WsEvent (sealed class)
                     Opened / MessageReceived / Error / Closed
 ```
 
-`WebSocketManager` wraps all OkHttp details. `MainActivity` only calls `connect()`, `send()`, `disconnect()`, and `shutdown()` -- it never touches `OkHttpClient` directly. This separation makes it easy to swap the transport layer (e.g. replace OkHttp with Ktor) without touching UI code.
+`WebSocketManager` wraps all Supabase Realtime/Postgrest details. `MainActivity` only calls `connect()`, `send()`, `disconnect()`, and `shutdown()` -- it never touches `SupabaseClient` directly. This separation is what made it a drop-in swap from the original raw-OkHttp echo-server version: same event types, same method names, different transport underneath.
+
+---
+
+## Supabase Setup
+
+This module shares the same Supabase project and `messages` table as **7-3-connectivity-supabase** -- if you've already done that tutorial's setup (project, table, `local.properties`), you only need one extra step:
+
+**Enable Realtime on the `messages` table.** Realtime is off per table by default -- a table can have data and RLS policies fine and still deliver nothing over Realtime until it's added to the `supabase_realtime` publication. In the Supabase dashboard **SQL Editor**, run:
+
+```sql
+alter publication supabase_realtime add table messages;
+```
+
+(equivalently: **Database → Publications** → `supabase_realtime` → toggle on `messages`)
+
+If you haven't done 7-3 yet, follow that module's README first (create project, create the `messages` table, add `SUPABASE_URL`/`SUPABASE_KEY` to `local.properties`), then run the SQL above.
 
 ---
 
 ## How to Run
 
-No setup needed. The app uses `wss://echo.websocket.org`, a free public echo server.
-
-1. Open the project in Android Studio
-2. Run on a device or emulator (API 33+)
-3. Tap **Connect** -- status turns green when the handshake succeeds
-4. Type a message and tap **Send** -- you will see `SENT` then `RECEIVED` in the log
-5. Tap **Disconnect** to close cleanly
-
----
-
-## How to Adapt to a Real Server
-
-**Change the server URL:**
-```kotlin
-private val SERVER_URL = "wss://your-server.example.com/ws"
-```
-
-**Add authentication headers** (e.g. Bearer token):
-```kotlin
-val request = Request.Builder()
-    .url(url)
-    .addHeader("Authorization", "Bearer $token")
-    .build()
-```
-
-**Handle binary frames** (images, protobufs):
-```kotlin
-override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-    // process binary payload
-}
-```
-
-**Reconnect on failure** -- implement exponential backoff in `WsEvent.Error` handler instead of just showing an error message.
+1. Complete the Supabase setup above (shared with 7-3; only the publication step is new).
+2. Open the project in Android Studio, sync Gradle.
+3. Run on a device or emulator (API 33+).
+4. Tap **Connect** -- status turns green once subscribed.
+5. Type a message and tap **Send** -- you'll see `SENT` then `RECEIVED` in the log (the insert echoing back over the same channel).
+6. While connected, insert a row via the Supabase Table Editor or SQL Editor -- it appears as `RECEIVED` with no matching `SENT` line, since it didn't come from this app.
+7. Tap **Disconnect** to unsubscribe cleanly.
 
 ---
 
-## Relation to Supabase Realtime
+## How to Adapt
 
-Supabase Realtime (covered in Tutorial 7-3) uses WebSocket internally. When you subscribe to a Supabase channel, the Supabase client library opens a WebSocket connection to Supabase's Realtime server and listens for database change events pushed over that connection.
+**Listen to a different table:**
+```kotlin
+wsManager.connect("your_table_name")
+```
 
-This tutorial shows the raw WebSocket layer that Supabase (and many other real-time services) are built on top of. Understanding `onOpen`, `onMessage`, and `onFailure` directly helps you debug connectivity issues in higher-level libraries.
+**Handle UPDATE/DELETE too, not just INSERT:**
+```kotlin
+ch.postgresChangeFlow<PostgresAction>(schema = "public") { table = tableName }
+    .onEach { action ->
+        when (action) {
+            is PostgresAction.Insert -> { /* ... */ }
+            is PostgresAction.Update -> { /* ... */ }
+            is PostgresAction.Delete -> { /* ... */ }
+            else -> {}
+        }
+    }
+```
+
+**Reconnect on failure** -- implement retry/backoff in the `WsEvent.Error` handler instead of just showing an error message.
+
+**Raw WebSocket instead of a managed SDK** -- see this file's git history for the original OkHttp `WebSocketListener` version against a public echo server; useful if you want to teach the wire protocol directly rather than a client SDK's abstraction over it.
 
 ---
 
@@ -124,7 +133,9 @@ This tutorial shows the raw WebSocket layer that Supabase (and many other real-t
 
 | File | Purpose |
 |---|---|
-| `WebSocketManager.kt` | OkHttp wrapper -- connect/send/disconnect/shutdown |
+| `WebSocketManager.kt` | Supabase Realtime wrapper -- connect/send/disconnect/shutdown |
+| `SupabaseClientProvider.kt` | Singleton Supabase client (Postgrest + Realtime installed) |
+| `Message.kt` | `@Serializable` row shape for the `messages` table |
 | `MainActivity.kt` | UI logic, event handling, lifecycle |
 | `activity_main.xml` | Layout -- status, message log, input, buttons |
 | `AndroidManifest.xml` | INTERNET permission |

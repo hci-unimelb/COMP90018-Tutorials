@@ -7,47 +7,107 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/add_data"
-        android:layout_width="250dp"
+    <!--
+        DEMO UI: every button is paired with a caption stating exactly what it sends
+        across to the other app's ContentProvider — otherwise the values only exist in
+        MainActivity.kt and nobody watching the app run can see them. Update/Delete are
+        greyed out until Add has actually run, since both need the row id Add returns.
+    -->
+    <LinearLayout
+        android:id="@+id/form"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/add_data"
-        app:layout_constraintLeft_toLeftOf="parent"
+        android:orientation="vertical"
+        android:padding="16dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <Button
-        android:id="@+id/update_data"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
-        android:text="@string/update_data"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/add_data" />
+        <Button
+            android:id="@+id/add_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/add_data" />
 
-    <Button
-        android:id="@+id/delete_data"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
-        android:text="@string/delete_data"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/update_data" />
+        <TextView
+            android:id="@+id/caption_add"
+            style="@style/ActionCaption"
+            android:text="Inserts &quot;A Clash of Kings&quot; by George Martin (1040pg, $55.55) through the ContentProvider in 6-2-storage-database." />
 
-    <Button
-        android:id="@+id/query_data"
-        android:layout_width="250dp"
-        android:layout_height="wrap_content"
-        android:text="@string/query_data"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/delete_data" />
+        <Button
+            android:id="@+id/update_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:enabled="false"
+            android:text="@string/update_data" />
 
-    <androidx.constraintlayout.widget.Barrier
-        android:id="@+id/barrier1"
+        <TextView
+            android:id="@+id/caption_update"
+            style="@style/ActionCaption"
+            android:text="Renames that book to &quot;A Storm of Swords&quot; and sets it to 1216pg, $24.05. Needs Add Data first — it edits the row Add just created." />
+
+        <Button
+            android:id="@+id/delete_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:enabled="false"
+            android:text="@string/delete_data" />
+
+        <TextView
+            android:id="@+id/caption_delete"
+            style="@style/ActionCaption"
+            android:text="Deletes that same row. Also needs Add Data first, for the same reason." />
+
+        <Button
+            android:id="@+id/query_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/query_data" />
+
+        <TextView
+            android:id="@+id/caption_query"
+            style="@style/ActionCaption"
+            android:text="Reads every row the other app's provider will hand back, and refreshes the list below." />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/preview_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:barrierDirection="right"
-        app:constraint_referenced_ids="delete_data" />
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:textStyle="bold"
+        android:text="Book table (via the other app's provider)"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/form" />
+
+    <ScrollView
+        android:id="@+id/preview_scroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="#EEEEEE"
+        android:padding="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/preview_label"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:id="@+id/data_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="13sp"
+            android:text="(no rows queried yet — tap Query Data)" />
+
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -40,13 +40,14 @@ class MainActivity : AppCompatActivity() {
         // Initialize helper: Name of db is "BookStore.db", version is 2
         dbHelper = MyDatabaseHelper(this, "BookStore.db", null, 2)
 
-        binding.modifyDeleteData.text = "<"
+        updateDeleteConditionLabel()
 
         // 1. CREATE DATABASE
         binding.createDatabase.setOnClickListener {
             // Calling writableDatabase checks if the file exists.
             // If it doesn't exist, it triggers onCreate() in MyDatabaseHelper to build tables.
             dbHelper.writableDatabase
+            refreshPreview()
         }
 
         // 2. ADD (INSERT) DATA
@@ -73,8 +74,8 @@ class MainActivity : AppCompatActivity() {
             values.put("price", 19.95)
             db.insert("Book", null, values)
 
-            // Update on-screen count label
-            updateQueryCountLabel(queryAllDataCount().toString())
+            // Refresh the on-screen preview so the new rows are visible immediately
+            refreshPreview()
         }
 
         // 3. UPDATE DATA
@@ -88,23 +89,26 @@ class MainActivity : AppCompatActivity() {
             // in an array: `arrayOf("The Da Vinci Code")`. The SQL compiler sanitizes this to prevent hackers!
             db.update("Book", values, "name = ?", arrayOf("The Da Vinci Code"))
 
-            updateQueryCountLabel(queryAllDataCount().toString())
+            refreshPreview()
         }
 
         // 4. DELETE DATA
         binding.deleteData.setOnClickListener {
             val db = dbHelper.writableDatabase
-            
-            // Delete books matching selection (e.g. pages < 500 or pages > 500)
-            db.delete("Book", "pages ${binding.modifyDeleteData.text}?", arrayOf("500"))
 
-            updateQueryCountLabel(queryAllDataCount().toString())
+            // Delete books matching whichever condition the button above currently shows.
+            val operator = if (deleteLessThan) "<" else ">"
+            db.delete("Book", "pages $operator?", arrayOf("500"))
+
+            refreshPreview()
         }
 
-        // Toggle delete button operator (< or >)
+        // Toggle delete condition (pages < 500 or pages > 500) — the button's own label
+        // is the source of truth for what Delete Data is about to do, so there's no
+        // hidden rule the audience can't see.
         binding.modifyDeleteData.setOnClickListener {
             deleteLessThan = !deleteLessThan
-            binding.modifyDeleteData.text = if (deleteLessThan) "<" else ">"
+            updateDeleteConditionLabel()
         }
 
         // 5. QUERY (READ) DATA
@@ -115,8 +119,6 @@ class MainActivity : AppCompatActivity() {
             // Think of a Cursor like a pointer pointing to a spreadsheet row.
             // It starts just *before* the first row of data.
             val cursor = db.query("Book", null, null, null, null, null, null)
-
-            updateQueryCountLabel(cursor.count.toString())
 
             // Move the pointer to the first row. Returns true if there is at least 1 record.
             if (cursor.moveToFirst()) {
@@ -139,25 +141,51 @@ class MainActivity : AppCompatActivity() {
             
             // ALWAYS CLOSE YOUR CURSORS! If you don't, it leaks native memory and resources!
             cursor.close()
+
+            refreshPreview()
         }
     }
 
     /**
-     * Helper to query the count of all records in the Book table.
-     *
-     * RESOURCE MANAGEMENT (Auto-Closing Cursors):
-     * We use Kotlin's built-in `.use { ... }` extension function on the query result Cursor.
-     * A Cursor is a Closeable resource. By using `.use`, Kotlin guarantees that the Cursor is
-     * automatically closed at the end of the block, preventing resource leaks and saving native system memory!
+     * DEMO UI: makes the Delete condition button say what it will actually do,
+     * instead of showing a bare "<" or ">" with no context.
      */
-    private fun queryAllDataCount(): Int {
-        val cursor = dbHelper.writableDatabase.query("Book", null, null, null, null, null, null)
-        return cursor.use {
-            it.count
+    private fun updateDeleteConditionLabel() {
+        binding.modifyDeleteData.text = if (deleteLessThan) {
+            "Delete condition: pages < 500  (tap to flip)"
+        } else {
+            "Delete condition: pages > 500  (tap to flip)"
         }
     }
 
-    private fun updateQueryCountLabel(value: String) {
-        binding.queryCount.text = "N = $value"
+    /**
+     * DEMO VISUAL: paints every row currently in the Book table onto the screen.
+     *
+     * This is what makes the CRUD buttons above actually visible during a live demo —
+     * without it, insert/update/delete only prove themselves through Logcat, which the
+     * class can't see. We re-query and re-render on every button tap, so the on-screen
+     * list is always the ground truth of what's in BookStore.db right now.
+     */
+    private fun refreshPreview() {
+        val cursor = dbHelper.writableDatabase.query("Book", null, null, null, null, null, "id asc")
+        val rows = cursor.use {
+            buildList {
+                while (it.moveToNext()) {
+                    @SuppressLint("Range") val id = it.getInt(it.getColumnIndex("id"))
+                    @SuppressLint("Range") val name = it.getString(it.getColumnIndex("name"))
+                    @SuppressLint("Range") val author = it.getString(it.getColumnIndex("author"))
+                    @SuppressLint("Range") val pages = it.getInt(it.getColumnIndex("pages"))
+                    @SuppressLint("Range") val price = it.getDouble(it.getColumnIndex("price"))
+                    add("#$id  $name — $author — ${pages}pg — \$$price")
+                }
+            }
+        }
+
+        binding.dataPreview.text = if (rows.isEmpty()) {
+            "(no rows yet — tap Create Database, then Add Data)"
+        } else {
+            rows.joinToString("\n")
+        }
+        binding.queryCount.text = "N = ${rows.size}"
     }
 }

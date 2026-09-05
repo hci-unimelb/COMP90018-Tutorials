@@ -4,4 +4,7 @@
     <string name="load">Load</string>
     <string name="clear">Clear text</string>
     <string name="hint">Type something here...</string>
+    <string name="save_image">Save Image</string>
+    <string name="load_image">Load Image</string>
+    <string name="clear_image">Clear Image</string>
 </resources>

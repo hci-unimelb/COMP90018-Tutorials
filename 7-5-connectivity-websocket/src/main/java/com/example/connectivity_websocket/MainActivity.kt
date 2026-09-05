@@ -7,27 +7,29 @@ import com.example.connectivity_websocket.databinding.ActivityMainBinding
 /**
  * Tutorial 7-5: WebSocket Demo
  *
- * Demonstrates a full-duplex WebSocket connection using OkHttp.
- * Connects to wss://echo.websocket.org -- a public echo server that
- * reflects every message back to the sender.
+ * Demonstrates a full-duplex, real-time connection -- backed by Supabase
+ * Realtime, which is itself a WebSocket under the hood (supabase-kt's
+ * Realtime plugin over the same `messages` table used in 7-3).
  *
  * Key concepts covered:
  *   - WebSocket vs HTTP: persistent, full-duplex, low overhead
- *   - WebSocketListener callbacks: onOpen, onMessage, onClosing, onFailure
+ *   - A higher-level SDK (supabase-kt) wrapping raw WebSocket frames as
+ *     typed Postgres change events
  *   - Proper lifecycle management: connect in UI, disconnect in onDestroy
- *   - Thread safety: OkHttp callbacks run off Main Thread; use runOnUiThread
- *   - Clean close: close code 1000 = Normal Closure per RFC 6455
+ *   - Thread safety: Realtime callbacks run off Main Thread; use runOnUiThread
  *
  * UI flow:
- *   Connect -> status turns green -> type message -> Send -> see echo reply
+ *   Connect -> status turns green -> type message -> Send -> inserts a row,
+ *   which comes straight back over the same channel as RECEIVED. Rows
+ *   inserted from the Supabase dashboard/SQL editor while connected arrive
+ *   the same way, with no matching SENT line.
  *   Disconnect -> status turns red
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    // The echo server URL -- wss:// = WebSocket over TLS (like https for WS)
-    private val SERVER_URL = "wss://echo.websocket.org"
+    private val TABLE_NAME = "messages"
 
     private val messageLog = StringBuilder()
 
@@ -42,7 +44,7 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             when (event) {
                 is WebSocketManager.WsEvent.Opened -> {
-                    appendLog("✓ Connected to $SERVER_URL")
+                    appendLog("✓ Subscribed to \"$TABLE_NAME\" table changes")
                     binding.statusText.text = "Connected"
                     binding.statusText.setTextColor(getColor(android.R.color.holo_green_dark))
                     binding.connectButton.text = "Disconnect"
@@ -82,8 +84,8 @@ class MainActivity : AppCompatActivity() {
             if (wsManager.isConnected) {
                 wsManager.disconnect()
             } else {
-                appendLog("Connecting to $SERVER_URL...")
-                wsManager.connect(SERVER_URL)
+                appendLog("Connecting to Supabase Realtime...")
+                wsManager.connect(TABLE_NAME)
             }
         }
 

@@ -62,12 +62,18 @@ class MainActivity : AppCompatActivity() {
                 val newUri: Uri? = client?.insert(uri, values)
                 newId = newUri?.pathSegments?.get(1) // Extract the ID of the new book
                 Log.d("Content Provider", "Successfully inserted row. New ID is: $newId")
+
+                // Update/Delete both target "book/$newId" — they were unusable (and would
+                // crash on a null id) until this ran once, so only unlock them now.
+                binding.updateData.isEnabled = true
+                binding.deleteData.isEnabled = true
             } catch (e: RemoteException) {
                 Log.e("Content Provider Insert Data", "URI is not reachable: ${e.message}")
             } finally {
                 // Guaranteed to run, preventing connection leaks!
                 client?.close()
             }
+            refreshPreview()
         }
 
         // 2. QUERY DATA
@@ -99,6 +105,7 @@ class MainActivity : AppCompatActivity() {
             } finally {
                 client?.close() // Safely close the client
             }
+            refreshPreview()
         }
 
         // 3. UPDATE DATA (Simplified, standard way)
@@ -114,15 +121,49 @@ class MainActivity : AppCompatActivity() {
             // Standard approach: Call contentResolver directly without acquiring clients manually!
             // Cleaner, shorter, and automatically safe from connection leaks.
             contentResolver.update(uri, values, null, null)
+            refreshPreview()
         }
 
         // 4. DELETE DATA (Simplified, standard way)
         binding.deleteData.setOnClickListener {
             // Delete the specific book we recently inserted
             val uri = Uri.parse("content://com.example.storage_database.provider/book/$newId")
-            
+
             // Delete row directly using ContentResolver
             contentResolver.delete(uri, null, null)
+            refreshPreview()
+        }
+    }
+
+    /**
+     * DEMO VISUAL: paints every row the provider currently returns onto the screen.
+     *
+     * Same idea as the SQLite demo app — without this, the class only ever sees Logcat
+     * lines. This calls the exact same content:// URI the buttons above use, so what's
+     * on screen here is always what the *other app's* database actually holds right now.
+     */
+    private fun refreshPreview() {
+        val uri = Uri.parse("content://com.example.storage_database.provider/book")
+        val rows = mutableListOf<String>()
+        try {
+            contentResolver.query(uri, null, null, null, "id asc")?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    @SuppressLint("Range") val id = cursor.getInt(cursor.getColumnIndex("id"))
+                    @SuppressLint("Range") val name = cursor.getString(cursor.getColumnIndex("name"))
+                    @SuppressLint("Range") val author = cursor.getString(cursor.getColumnIndex("author"))
+                    @SuppressLint("Range") val pages = cursor.getInt(cursor.getColumnIndex("pages"))
+                    @SuppressLint("Range") val price = cursor.getDouble(cursor.getColumnIndex("price"))
+                    rows.add("#$id  $name — $author — ${pages}pg — \$$price")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Content Provider Preview", "URI is not reachable: ${e.message}")
+        }
+
+        binding.dataPreview.text = if (rows.isEmpty()) {
+            "(no rows queried yet — tap Query Data)"
+        } else {
+            rows.joinToString("\n")
         }
     }
 }
