@@ -34,10 +34,10 @@ class MainActivity : AppCompatActivity() {
     private val messageLog = StringBuilder()
 
     /**
-     * WebSocketManager handles all OkHttp details.
-     * We pass a lambda that will be called on every WebSocket event.
+     * WebSocketManager handles all Supabase Realtime details.
+     * We pass a lambda that will be called on every channel event.
      *
-     * NOTE: OkHttp calls this lambda on a background thread.
+     * NOTE: Realtime delivers events on a background dispatcher (Dispatchers.IO).
      * We use runOnUiThread{} inside to update Views safely.
      */
     private val wsManager = WebSocketManager { event ->
@@ -105,8 +105,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // IMPORTANT: shutdown() releases OkHttp's thread pool.
-        // Forgetting this leaks threads that outlive the Activity.
+        // IMPORTANT: shutdown() unsubscribes the Realtime channel.
+        // Forgetting this leaves a subscription open with nowhere to deliver
+        // events -- the lambda above still closes over this Activity.
         wsManager.shutdown()
     }
 
