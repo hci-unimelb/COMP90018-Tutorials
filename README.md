@@ -55,6 +55,7 @@ Open the week's module folder in Android Studio (`File → Open` → select the 
 | 7b   | [Connectivity — Supabase](./7-3-connectivity-supabase/)         | Postgres via PostgREST, Kotlin serialization ⚠️        |
 | 7c   | [Connectivity — Bluetooth](./7-4-connectivity-bluetooth/)       | BLE scanning, GATT, runtime permissions               |
 | 7d   | [Connectivity — WebSocket](./7-5-connectivity-websocket/)       | OkHttp WebSocket, full-duplex messaging               |
+| 8    | [MVVM](./8-1-mvvm/)                                             | ViewModel, LiveData, SavedStateHandle, surviving rotation |
 
 ---
 

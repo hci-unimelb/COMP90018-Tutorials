@@ -40,3 +40,5 @@ include(":7-3-connectivity-supabase")
 include(":7-4-connectivity-bluetooth")
 
 include(":7-5-connectivity-websocket")
+
+include(":8-1-mvvm")

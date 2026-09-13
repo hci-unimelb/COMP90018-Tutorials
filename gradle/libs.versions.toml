@@ -18,6 +18,7 @@ roomCompilerProcessingTesting = "2.6.1"
 firebaseDatabase = "21.0.0"
 credentials = "1.3.0"
 googleid = "1.1.1"
+lifecycle = "2.8.7"
 
 [libraries]
 greendao = { module = "org.greenrobot:greendao", version.ref = "greendao" }
@@ -38,6 +39,14 @@ firebase-database = { group = "com.google.firebase", name = "firebase-database",
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+
+# Week 8 - MVVM / lifecycle-aware state
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.13.1" }
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version = "1.9.2" }
+lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycle" }
+lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+lifecycle-viewmodel-savedstate = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-savedstate", version.ref = "lifecycle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

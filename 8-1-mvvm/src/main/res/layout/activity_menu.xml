@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:layout_marginTop="?attr/actionBarSize"
+    tools:context=".MenuActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Where does your state live?"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Same app, three times. Tap a few steps, start the goal load, then rotate the phone and watch what happens."
+        android:gravity="center"
+        android:paddingBottom="32dp" />
+
+    <Button
+        android:id="@+id/openBroken"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1 - State in the Activity" />
+
+    <Button
+        android:id="@+id/openMvvm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="2 - State in a ViewModel (MVVM)" />
+
+    <Button
+        android:id="@+id/openSavedState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="3 - ViewModel + SavedStateHandle" />
+
+    <Button
+        android:id="@+id/openLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="4 - Login form: logic in the ViewModel" />
+
+</LinearLayout>

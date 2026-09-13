@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.COMP90018Tutorials2024">
+
+        <!-- The menu screen is the launcher. It just sends you to one of the three demos. -->
+        <activity
+            android:name=".MenuActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Demo 1: all state lives in the Activity. Rotating wipes it. -->
+        <activity android:name=".view.BrokenActivity" android:exported="false" />
+
+        <!-- Demo 2: same app, state moved into a ViewModel. Rotating keeps it. -->
+        <activity android:name=".view.MvvmActivity" android:exported="false" />
+
+        <!-- Demo 3: ViewModel + SavedStateHandle. Survives process death too. -->
+        <activity android:name=".view.SavedStateActivity" android:exported="false" />
+
+
+        <!-- Demo 4: the classic login example - validation lives in the ViewModel. -->
+        <activity android:name=".view.LoginActivity" android:exported="false" />
+
+    </application>
+
+</manifest>

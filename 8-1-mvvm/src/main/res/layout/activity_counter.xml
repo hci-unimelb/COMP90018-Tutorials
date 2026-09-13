@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ONE layout, shared by all three demo screens.
+
+    That is deliberate. The View is identical in every demo - same buttons,
+    same text fields, same XML. The ONLY thing that changes between the three
+    screens is WHERE the data lives in Kotlin. If the layout were different
+    each time, students would not be able to tell which change caused what.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:layout_marginTop="?attr/actionBarSize"
+    tools:context=".view.MvvmActivity">
+
+    <!-- Set from code so we always know which of the three demos is on screen. -->
+    <TextView
+        android:id="@+id/screenLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DEMO"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:id="@+id/screenSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:paddingBottom="24dp" />
+
+    <!-- ===== Part A: the counter ===== -->
+
+    <TextView
+        android:id="@+id/stepCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:textSize="72sp"
+        android:gravity="center" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="steps"
+        android:gravity="center"
+        android:paddingBottom="16dp" />
+
+    <Button
+        android:id="@+id/addStep"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="+1 step" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginBottom="20dp"
+        android:background="?android:attr/listDivider" />
+
+    <!-- ===== Part B: the slow "network" call ===== -->
+
+    <TextView
+        android:id="@+id/goalStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Daily goal: not loaded"
+        android:textSize="18sp"
+        android:paddingBottom="12dp" />
+
+    <Button
+        android:id="@+id/loadGoal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Load goal from server (3s)" />
+
+    <TextView
+        android:id="@+id/hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:paddingTop="24dp"
+        android:textSize="13sp" />
+
+</LinearLayout>
